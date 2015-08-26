@@ -40,7 +40,6 @@ DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
 Workflow = lazy_import("invenio_workflows.models.Workflow")
 
 
-
 class BibWorkflowObjectIdContainer(object):
 
     """Mapping from an ID to DbWorkflowObject.
@@ -192,70 +191,6 @@ def parse_bwids(bwolist):
     """Use ast to eval a string representing a list."""
     import ast
     return list(ast.literal_eval(bwolist))
-
-
-def get_holdingpen_objects(ptags=None):
-    """Get DbWorkflowObject's for display in Holding Pen.
-
-    Uses DataTable naming for filtering/sorting. Work in progress.
-    """
-    if ptags is None:
-        ptags = DbWorkflowObject.known_statuses.HALTED.label
-
-    tags_copy = ptags[:]
-    type_showing = []
-    uri_showing = []
-    status_showing = []
-    inverted_known_statuses = dict([[v, k] for k, v in DbWorkflowObject.known_statuses.items()])
-    for tag in ptags:
-        if tag in DbWorkflowObject.known_statuses.labels:
-            status_showing.append(DbWorkflowObject.known_statuses(inverted_known_statuses[tag]))
-            tags_copy.remove(tag)
-        elif tag.startswith("type:"):
-            type_showing.append(":".join(tag.split(":")[1:]))
-            tags_copy.remove(tag)
-        elif tag.startswith("uri:"):
-            uri_showing.append(":".join(tag.split(":")[1:]))
-            tags_copy.remove(tag)
-        elif tag.startswith("status:"):
-            status_showing.append(":".join(tag.split(":")[1:]))
-            tags_copy.remove(tag)
-
-    ssearch = tags_copy
-
-    bwobject_list = DbWorkflowObject.query.filter(
-        DbWorkflowObject.id_parent == None  # noqa E711
-    ).filter(not status_showing or DbWorkflowObject.status.in_(status_showing),
-        or_(*[DbWorkflowObject.data_type.like(type_.replace("*", "%"))
-              for type_ in type_showing]),
-        or_(*[DbWorkflowObject.uri.like(uri.replace("*", "%"))
-              for uri in uri_showing]),
-        or_(*[DbWorkflowObject.status.like(status.replace("*", "%"))
-              for status in status_showing])
-    ).all()
-
-    if ssearch and ssearch[0]:
-        if not isinstance(ssearch, list):
-            if "," in ssearch:
-                ssearch = ssearch.split(",")
-            else:
-                ssearch = [ssearch]
-
-        bwobject_list_tmp = []
-        for bwo in bwobject_list:
-            results = {
-                "created": get_pretty_date(bwo),
-                "type": get_type(bwo),
-                "title": None,
-                "description": None
-            }
-            results.update(get_formatted_holdingpen_object(bwo))
-
-            if check_term_in_data(ssearch, results):
-                bwobject_list_tmp.append(bwo)
-
-        bwobject_list = bwobject_list_tmp
-    return bwobject_list
 
 
 def get_formatted_holdingpen_object(bwo, date_format='%Y-%m-%d %H:%M:%S.%f'):
@@ -451,8 +386,11 @@ def get_rendered_task_results(obj):
     return results
 
 
-def get_rendered_row(bwo):
+def get_rendered_row(b_id):
     """Return a single formatted row."""
+    from .models import BibWorkflowObject
+
+    bwo = BibWorkflowObject.query.get(b_id)
     preformatted = get_formatted_holdingpen_object(bwo)
     return render_template(
         'workflows/list_row.html',
@@ -464,10 +402,10 @@ def get_rendered_row(bwo):
     )
 
 
-def get_rows(object_list):
+def get_rows(id_list):
     """Return all rows formatted."""
-    return [get_rendered_row(bwo)
-            for bwo in object_list]
+    return [get_rendered_row(bid)
+            for bid in id_list]
 
 
 def get_previous_next_objects(object_list, current_object_id):

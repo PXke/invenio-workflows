@@ -44,6 +44,8 @@ from flask import (
     session
 )
 
+from flask import current_app
+
 from flask_breadcrumbs import default_breadcrumb_root, register_breadcrumb
 
 from flask_login import login_required
@@ -64,15 +66,14 @@ from ..acl import viewholdingpen
 from ..api import continue_oid_delayed, start_delayed
 from ..models import DbWorkflowObject, ObjectStatus, Workflow
 from ..registry import actions, workflows
+from ..search import get_holdingpen_objects
 from ..utils import (
     alert_response_wrapper,
     extract_data,
     get_data_types,
-    get_holdingpen_objects,
     get_previous_next_objects,
     get_rendered_task_results,
-    get_rows,
-    sort_bwolist
+    get_rows
 )
 
 
@@ -136,21 +137,22 @@ def index():
 @wash_arguments({
     'page': (int, 1),
     'per_page': (int, 0),
-    'sort_key': (unicode, "updated"),
+    'sort_key': (unicode, "modified"),
 })
 def load(page, per_page, sort_key):
     """Load objects for the table."""
     # FIXME: Load tags in this way until wash_arguments handles lists.
     tags = request.args.getlist("tags[]") or []  # empty to show all
     sort_key = request.args.get(
-        'sort_key', session.get('holdingpen_sort_key', "updated")
+        'sort_key', session.get('holdingpen_sort_key', "modified")
     )
-    per_page = per_page or session.get('holdingpen_per_page') or 10
-    object_list = get_holdingpen_objects(tags)
-    object_list = sort_bwolist(object_list, sort_key)
+    response = get_holdingpen_objects(tags, sort_key)
+    current_app.logger.debug(tags)
+    current_app.logger.debug(response)
 
     page = max(page, 1)
-    pagination = Pagination(page, per_page, len(object_list))
+    per_page = per_page or session.get('holdingpen_per_page') or 10
+    pagination = Pagination(page, per_page, len(response))
 
     # Make sure requested page is within limits.
     if pagination.page > pagination.pages:
@@ -177,7 +179,7 @@ def load(page, per_page, sort_key):
     }
 
     # Add current ids in table for use by previous/next
-    session['holdingpen_current_ids'] = [o.id for o in object_list]
+    session['holdingpen_current_ids'] = response
     session['holdingpen_sort_key'] = sort_key
     session['holdingpen_per_page'] = per_page
     session['holdingpen_tags'] = tags
@@ -187,28 +189,41 @@ def load(page, per_page, sort_key):
         pagination.per_page * pagination.page,
         pagination.total_count
     )
-    table_data["rows"] = get_rows(object_list[display_start:display_end])
+
+    table_data["rows"] = get_rows(
+        response[display_start:display_end]
+    )
     table_data["rendered_rows"] = "".join(table_data["rows"])
     return jsonify(table_data)
 
 
 @blueprint.route('/list', methods=['GET', ])
+@blueprint.route('/list/<tags_slug>', methods=['GET', ])
 @register_breadcrumb(blueprint, '.records', _('Records'))
 @login_required
 @permission_required(viewholdingpen.name)
-def list_objects():
+def list_objects(tags_slug=None):
     """Display main table interface of Holdingpen."""
-    tags = session.get(
-        "holdingpen_tags",
-        [ObjectStatus.labels[ObjectStatus.HALTED.value]]
+    if not tags_slug:
+        tags = session.get(
+            "holdingpen_tags",
+            ['version:"{0}"'.format(
+                ObjectStatus.labels[ObjectStatus.HALTED.value]
+            )]
+        )
+    else:
+        tags = [tags_slug]
+    tags_to_print = [
+        {"text": tag.replace('"', '\\"'), "value": tag.replace('"', '\\"')}
+        for tag in tags if tag
+    ]
+    sort_key = request.args.get(
+        'sort_key', session.get('holdingpen_sort_key', "modified")
     )
-
-    tags_to_print = [{"text": tag, "value": tag}
-                     for tag in tags if tag]
     return render_template(
         'workflows/list.html',
         tags=json.dumps(tags_to_print),
-        object_list=get_holdingpen_objects(tags),
+        object_list=get_holdingpen_objects(tags, sort_key),
         type_list=get_data_types(),
         per_page=session.get('holdingpen_per_page')
     )

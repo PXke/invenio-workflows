@@ -46,17 +46,17 @@
       $node.tagsinput({
           tagClass: function (item) {
               switch (item.value) {
-                case 'In process':
+                case 'version:"In process"':
                   return 'label label-warning';
-                case 'Need action':
+                case 'version:"Need action"':
                   return 'label label-danger';
-                case 'Waiting':
+                case 'version:"Waiting"':
                   return 'label label-warning';
-                case 'Done':
+                case 'version:"Done"':
                   return 'label label-success';
-                case 'New':
+                case 'version:"New"':
                   return 'label label-info';
-                case 'Error':
+                case 'version:"Error"':
                   return 'label label-danger';
                 default:
                   return 'badge badge-warning';
@@ -171,10 +171,10 @@
               <li class="dropdown">
                 <a class="dropdown-toggle dropdown-headline" data-toggle="dropdown" href="#">{{ _('Sort') }}<b class="caret"></b></a>
                 <ul id="sort-menu" class="dropdown-menu" role="menu">
-                    <li><a class="task-btn" name="newest">{{ _("Newest")}}</a></li>
-                    <li><a class="task-btn" name="oldest">{{ _("Oldest")}}</a></li>
-                    <li><a class="task-btn" name="updated">{{ _("Recently updated")}}</a></li>
-                    <li><a class="task-btn" name="least_updated">{{ _("Least recently updated")}}</a></li>
+                    <li><a class="task-btn" name="created_desc">{{ _("Newest")}}</a></li>
+                    <li><a class="task-btn" name="created">{{ _("Oldest")}}</a></li>
+                    <li><a class="task-btn" name="modified_desc">{{ _("Recently updated")}}</a></li>
+                    <li><a class="task-btn" name="modified">{{ _("Least recently updated")}}</a></li>
                     <li><a class="task-btn" name="title">{{ _("Title ascending")}}</a></li>
                     <li><a class="task-btn" name="title_desc">{{ _("Title descending")}}</a></li>
                 </ul>

@@ -29,3 +29,6 @@ WORKFLOWS_DATA_PROCESSORS = {
     'json': 'json.load',
     'marcxml': 'invenio_workflows.manage:split_marcxml',
 }
+
+WORKFLOWS_HOLDING_PEN_INDEX = "holdingpen"
+"""The name of the Elasticsearch index to use for Holding Pen records."""

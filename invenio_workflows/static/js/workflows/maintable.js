@@ -55,7 +55,7 @@ define(
       });
       HoldingPenTagsMenu.attachTo("#tags-menu", {
         menuitemSelector: "#tags-menu a",
-        valuePrefix: ""
+        valuePrefix: "version:"
       });
       HoldingPenTagsMenu.attachTo("#type-menu", {
         menuitemSelector: "#type-menu a",

@@ -52,6 +52,7 @@ from workflow.engine_db import WorkflowStatus, EnumLabel
 from workflow.utils import staticproperty
 
 from .logger import get_logger, DbWorkflowLogHandler
+from .signals import workflow_object_saved
 from .utils import get_func_info, get_workflow_definition
 
 
@@ -896,6 +897,7 @@ class DbWorkflowObject(db.Model):
             # Because the logger will save to the DB so it NEEDS self.id to be
             # not None
             self.log.debug("Saved object: %s" % (self.id or "new",))
+        workflow_object_saved.send(self)
 
     @classmethod
     def get(cls, *criteria, **filters):

@@ -47,3 +47,6 @@ This signal is sent when a workflow object gets an error.
 Sender is the BibWorkflowObject that was running before the workflow
 got the error.
 """
+
+workflow_object_saved = _signals.signal('workflow_object_saved')
+"""This signal is sent when a workflow object is saved."""

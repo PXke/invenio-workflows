@@ -11,6 +11,7 @@ recursive-include docs *.py
 recursive-include docs *.rst
 recursive-include docs Makefile
 recursive-include invenio_workflows *.css
+recursive-include invenio_workflows *.json
 recursive-include invenio_workflows *.html
 recursive-include invenio_workflows *.js
 recursive-include invenio_workflows *.mustache

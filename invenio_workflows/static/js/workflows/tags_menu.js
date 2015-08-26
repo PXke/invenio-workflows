@@ -46,10 +46,10 @@ define(
       });
 
       this.triggerAddTagFromMenu = function(ev, data) {
-        var value = this.attr.valuePrefix + data.el.name;
+        var value = this.attr.valuePrefix + '"' + data.el.name + '"';
         this.trigger(document, "addTagFromMenu", {
           value: value,
-          text: value
+          text: data.el.name
         });
       };
 

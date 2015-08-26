@@ -62,6 +62,15 @@ class WorkflowBase(object):
         """Return a dictionary useful for sorting in Holding Pen."""
         return {}
 
+    @staticmethod
+    def get_record(obj, **kwargs):
+        """Return a dictionary-like object representing the current object.
+
+        This object will be used for indexing and be the basis for display
+        in Holding Pen.
+        """
+        return obj.get_data()
+
 
 class RecordWorkflow(WorkflowBase):
 
