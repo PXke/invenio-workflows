@@ -76,6 +76,11 @@ def index_holdingpen_record(sender, **kwargs):
         )
         return
 
+    if not hasattr(sender, 'data'):
+        sender.data = sender.get_data()
+    if not hasattr(sender, 'extra_data'):
+        sender.extra_data = sender.get_extra_data()
+
     record = Record({})
     record["version"] = ObjectVersion.name_from_version(sender.version)
     record["type"] = sender.data_type
