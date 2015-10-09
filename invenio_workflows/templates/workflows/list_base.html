@@ -196,9 +196,11 @@
         </tbody>
       </table>
       {% endblock %}
-      {% block pagination %}
-      <div id="hp-pagination"></div>
+      {% block batch_action_buttons_bottom %}
       {% endblock %}
     </div>
+    {% block pagination %}
+      <div id="hp-pagination"></div>
+    {% endblock %}
   </div>
 {% endblock %}

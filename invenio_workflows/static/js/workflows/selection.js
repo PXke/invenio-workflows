@@ -48,7 +48,7 @@ define(
           rowSelector: "*[data-href]",
 
           // Batch Buttons
-          batchButtons: "#batch-action-buttons",
+          batchButtons: ".batch-action-buttons",
           batchButtonSelector: ".batch-button"
       });
 
