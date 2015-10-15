@@ -199,21 +199,19 @@ def load(page, per_page, sort_key):
 
 
 @blueprint.route('/list', methods=['GET', ])
+@blueprint.route('/list/', methods=['GET', ])
 @blueprint.route('/list/<tags_slug>', methods=['GET', ])
 @register_breadcrumb(blueprint, '.records', _('Records'))
 @login_required
 @permission_required(viewholdingpen.name)
 def list_objects(tags_slug=None):
     """Display main table interface of Holdingpen."""
-    if not tags_slug:
-        tags = session.get(
-            "holdingpen_tags",
-            ['version:"{0}"'.format(
-                ObjectStatus.labels[ObjectStatus.HALTED.value]
-            )]
-        )
-    else:
-        tags = [tags_slug]
+    tags = [tag for tag in tags_slug.split(' AND ')] if tags_slug \
+        else session.get("holdingpen_tags",
+                         ['version:"{0}"'.format(
+                             ObjectStatus.labels[ObjectStatus.HALTED.value]
+                         )])
+
     tags_to_print = [
         {"text": tag.replace('"', '\\"'), "value": tag.replace('"', '\\"')}
         for tag in tags if tag

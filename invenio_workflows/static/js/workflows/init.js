@@ -37,6 +37,7 @@ require(
     "js/workflows/details_preview",
     "js/workflows/details_preview_menu",
     "js/workflows/details_page",
+    "js/workflows/url_updater",
     "js/workflows/actions/init"
   ],
   function() {

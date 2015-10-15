@@ -69,6 +69,7 @@ define(
         var payload = {};
         payload.tags = this.getCurrentTags();
         this.trigger(document, "reloadHoldingPenTable", payload);
+        this.trigger(document, "update_url", payload);
       };
 
 

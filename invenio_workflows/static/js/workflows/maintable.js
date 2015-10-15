@@ -26,7 +26,8 @@ define(
     "js/workflows/sort_menu",
     "js/workflows/tags",
     "js/workflows/tags_menu",
-    "js/workflows/selection"
+    "js/workflows/selection",
+    "js/workflows/url_updater"
   ],
   function(
     HoldingPenCommon,
@@ -36,7 +37,8 @@ define(
     HoldingPenSort,
     HoldingPenTags,
     HoldingPenTagsMenu,
-    HoldingPenSelection) {
+    HoldingPenSelection,
+    HoldingPenUrlUpdater) {
 
     "use strict";
 
@@ -67,6 +69,7 @@ define(
       });
 
       HoldingPenSelection.attachTo(document);
+      HoldingPenUrlUpdater.attachTo(document);
     }
 
     return initialize;
