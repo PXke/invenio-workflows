@@ -23,41 +23,63 @@ import json
 
 from flask import current_app
 
-from invenio.base import signals
-from invenio.base.scripts.database import create, drop, recreate
+from invenio_base import signals
+from invenio_base.scripts.database import create, drop, recreate
 
+from sqlalchemy.event import listen
+
+from .models import BibWorkflowObject
 from .signals import workflow_object_saved
+
+
+def delete_from_index(mapper, connection, target):
+    """Delete record from index."""
+    from invenio_ext.es import es
+    indices = current_app.config.get(
+        "WORKFLOWS_HOLDING_PEN_INDICES"
+    )
+    doc_type = current_app.config.get(
+        "WORKFLOWS_HOLDING_PEN_DOC_TYPE"
+    )
+    for index in indices:
+        es.delete(
+            index=index,
+            doc_type=doc_type,
+            id=target.id,
+            ignore=404
+        )
 
 
 def create_holdingpen_index(sender, **kwargs):
     """Create the index for Holding Pen records."""
     from invenio_search.registry import mappings
-    from invenio.ext.es import es
+    from invenio_ext.es import es
 
-    mapping = {}
-    index = current_app.config.get(
-        "WORKFLOWS_HOLDING_PEN_INDEX"
+    indices = current_app.config.get(
+        "WORKFLOWS_HOLDING_PEN_INDICES"
     )
-    mapping_filename = "{0}.json".format(index)
-    if mapping_filename in mappings:
-        mapping = json.load(open(mappings[mapping_filename], "r"))
-    es.indices.delete(index=index, ignore=404)
-    es.indices.create(index=index, body=mapping)
+    for index in indices:
+        mapping = {}
+        mapping_filename = "{0}.json".format(index)
+        if mapping_filename in mappings:
+            mapping = json.load(open(mappings[mapping_filename], "r"))
+        es.indices.delete(index=index, ignore=404)
+        es.indices.create(index=index, body=mapping)
 
 
 def delete_holdingpen_index(sender, **kwargs):
     """Delete the index for Holding Pen records."""
-    from invenio.ext.es import es
-    index = current_app.config.get(
-        "WORKFLOWS_HOLDING_PEN_INDEX"
+    from invenio_ext.es import es
+    indices = current_app.config.get(
+        "WORKFLOWS_HOLDING_PEN_INDICES"
     )
-    es.indices.delete(index=index, ignore=404)
+    for index in indices:
+        es.indices.delete(index=index, ignore=404)
 
 
-def index_holdingpen_record(sender, **kwargs):
+def index_holdingpen_record(sender, index=None, **kwargs):
     """Index a Holding Pen record."""
-    from invenio.ext.es import es
-
+    from invenio_ext.es import es
     from invenio_records.api import Record
 
     from .registry import workflows
@@ -65,6 +87,10 @@ def index_holdingpen_record(sender, **kwargs):
 
     if not sender.workflow:
         # No workflow registered to object yet. Skip indexing
+        return
+
+    if sender.version == ObjectVersion.INITIAL:
+        # Ignore initial versions
         return
 
     workflow = workflows.get(sender.workflow.name)
@@ -100,17 +126,24 @@ def index_holdingpen_record(sender, **kwargs):
     except Exception as err:
         current_app.logger.exception(err)
 
-    from invenio_records.recordext.functions.get_record_collections import get_record_collections
-    record['_collections'] = get_record_collections(record)
+    # FIXME: Tmp fix to add collection due to invenio_search
+    from invenio_records.recordext.functions.get_record_collections import (
+        get_record_collections,
+    )
+    record["_collections"] = get_record_collections(record)
+
+    if index is None:
+        index = current_app.config.get("WORKFLOWS_HOLDING_PEN_INDICES")[0]
 
     es.index(
-        index=current_app.config.get("WORKFLOWS_HOLDING_PEN_INDEX"),
-        doc_type='record',
+        index=index,
+        doc_type=current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE"),
         body=dict(record),
         id=sender.id
     )
 
 workflow_object_saved.connect(index_holdingpen_record)
+listen(BibWorkflowObject, "after_delete", delete_from_index)
 
 signals.pre_command.connect(delete_holdingpen_index, sender=drop)
 signals.pre_command.connect(create_holdingpen_index, sender=create)

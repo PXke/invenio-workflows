@@ -30,5 +30,8 @@ WORKFLOWS_DATA_PROCESSORS = {
     'marcxml': 'invenio_workflows.manage:split_marcxml',
 }
 
-WORKFLOWS_HOLDING_PEN_INDEX = "holdingpen"
-"""The name of the Elasticsearch index to use for Holding Pen records."""
+WORKFLOWS_HOLDING_PEN_INDICES = ["holdingpen"]
+"""The name of the Elasticsearch indices to use for Holding Pen records."""
+
+WORKFLOWS_HOLDING_PEN_DOC_TYPE = "record"
+"""The name of the Elasticsearch doc_type to use for Holding Pen records."""

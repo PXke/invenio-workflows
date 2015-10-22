@@ -21,21 +21,23 @@
 
 from flask import current_app
 
-from invenio.base.globals import cfg
-
 from invenio_search.api import Query
 
 
 def search(query, sorting={}):
-    """Return a ready Holding Pen search object from query and sorting."""
+    """Return a set of matched workflow object IDs."""
     results = Query(query)
     response = results.search()
-    response.index = cfg["WORKFLOWS_HOLDING_PEN_INDEX"]
+    response.index = ",".join(
+        current_app.config.get("WORKFLOWS_HOLDING_PEN_INDICES")
+    )
+    response.doc_type = current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE")
     if sorting:
         response.body.update(sorting)
     # FIXME pagination
     response.body["size"] = 99999999
-    return response
+    current_app.logger.debug(response.body)
+    return [int(r['_id']) for r in response._search()['hits']['hits']]
 
 
 def get_holdingpen_objects(tags_list=None,
@@ -58,11 +60,7 @@ def get_holdingpen_objects(tags_list=None,
             }
         }
     }
-    current_app.logger.debug(sorting)
-    response = search(
+    return search(
         query=" {0} ".format(operator).join(tags_list),
         sorting=sorting
     )
-    current_app.logger.debug(response.body)
-    # Return hits
-    return [int(r['_id']) for r in response._search()['hits']['hits']]
