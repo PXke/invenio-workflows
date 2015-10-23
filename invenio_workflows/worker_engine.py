@@ -208,7 +208,6 @@ def generate_snapshot(workflow_object, engine):
                                  % (initial_object.id,))
         # Propagate the parent id
         initial_object.id_parent = workflow_object.id
-        workflow_object.save()
 
     # Always return the given object to run on.
     return workflow_object

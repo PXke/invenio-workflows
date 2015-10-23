@@ -25,7 +25,6 @@ from flask import current_app
 
 from invenio.base import signals
 from invenio.base.scripts.database import create, drop, recreate
-from invenio.base.utils import toposort_send
 
 from .signals import workflow_object_saved
 
@@ -60,7 +59,6 @@ def index_holdingpen_record(sender, **kwargs):
     from invenio.ext.es import es
 
     from invenio_records.api import Record
-    from invenio_records.signals import before_record_insert
 
     from .registry import workflows
     from .models import ObjectVersion
@@ -102,10 +100,8 @@ def index_holdingpen_record(sender, **kwargs):
     except Exception as err:
         current_app.logger.exception(err)
 
-    from invenio.modules.jsonalchemy.registry import functions
-    list(functions('recordext'))
-
-    toposort_send(before_record_insert, record)
+    from invenio_records.recordext.functions.get_record_collections import get_record_collections
+    record['_collections'] = get_record_collections(record)
 
     es.index(
         index=current_app.config.get("WORKFLOWS_HOLDING_PEN_INDEX"),
