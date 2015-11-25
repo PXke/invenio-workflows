@@ -21,16 +21,16 @@
 
 from flask import current_app
 
+from invenio_base.globals import cfg
 from invenio_search.api import Query
 
 
 def search(query, sorting={}):
     """Return a set of matched workflow object IDs."""
     results = Query(query)
-    response = results.search()
-    response.index = ",".join(
-        current_app.config.get("WORKFLOWS_HOLDING_PEN_INDICES")
-    )
+    # Disable enhancing to avoid searching in default collection only
+    response = results.search(enhance=False)
+    response.index = cfg['WORKFLOWS_HOLDING_PEN_ES_PREFIX'] + '*'
     response.doc_type = current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE")
     if sorting:
         response.body.update(sorting)

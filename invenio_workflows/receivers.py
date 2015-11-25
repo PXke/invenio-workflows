@@ -19,12 +19,10 @@
 
 """Signal receivers for workflows."""
 
-import json
-
 from flask import current_app
 
-from invenio_base import signals
-from invenio_base.scripts.database import create, drop, recreate
+from invenio_base.globals import cfg
+from invenio_records.tasks.index import get_record_index
 
 from sqlalchemy.event import listen
 
@@ -35,13 +33,15 @@ from .signals import workflow_object_saved
 def delete_from_index(mapper, connection, target):
     """Delete record from index."""
     from invenio_ext.es import es
-    indices = current_app.config.get(
-        "WORKFLOWS_HOLDING_PEN_INDICES"
-    )
+
+    indices = set(cfg['SEARCH_ELASTIC_COLLECTION_INDEX_MAPPING'].values())
+    indices.add(cfg['SEARCH_ELASTIC_DEFAULT_INDEX'])
+
     doc_type = current_app.config.get(
         "WORKFLOWS_HOLDING_PEN_DOC_TYPE"
     )
     for index in indices:
+        index = cfg['WORKFLOWS_HOLDING_PEN_ES_PREFIX'] + index
         es.delete(
             index=index,
             doc_type=doc_type,
@@ -50,34 +50,7 @@ def delete_from_index(mapper, connection, target):
         )
 
 
-def create_holdingpen_index(sender, **kwargs):
-    """Create the index for Holding Pen records."""
-    from invenio_search.registry import mappings
-    from invenio_ext.es import es
-
-    indices = current_app.config.get(
-        "WORKFLOWS_HOLDING_PEN_INDICES"
-    )
-    for index in indices:
-        mapping = {}
-        mapping_filename = "{0}.json".format(index)
-        if mapping_filename in mappings:
-            mapping = json.load(open(mappings[mapping_filename], "r"))
-        es.indices.delete(index=index, ignore=404)
-        es.indices.create(index=index, body=mapping)
-
-
-def delete_holdingpen_index(sender, **kwargs):
-    """Delete the index for Holding Pen records."""
-    from invenio_ext.es import es
-    indices = current_app.config.get(
-        "WORKFLOWS_HOLDING_PEN_INDICES"
-    )
-    for index in indices:
-        es.indices.delete(index=index, ignore=404)
-
-
-def index_holdingpen_record(sender, index=None, **kwargs):
+def index_holdingpen_record(sender, **kwargs):
     """Index a Holding Pen record."""
     from invenio_ext.es import es
     from invenio_records.api import Record
@@ -130,22 +103,18 @@ def index_holdingpen_record(sender, index=None, **kwargs):
     from invenio_records.recordext.functions.get_record_collections import (
         get_record_collections,
     )
+
     record["_collections"] = get_record_collections(record)
 
-    if index is None:
-        index = current_app.config.get("WORKFLOWS_HOLDING_PEN_INDICES")[0]
-
-    es.index(
-        index=index,
-        doc_type=current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE"),
-        body=dict(record),
-        id=sender.id
-    )
+    record_index = get_record_index(record)
+    if record_index:
+        index = cfg['WORKFLOWS_HOLDING_PEN_ES_PREFIX'] + record_index
+        es.index(
+            index=index,
+            doc_type=cfg["WORKFLOWS_HOLDING_PEN_DOC_TYPE"],
+            body=dict(record),
+            id=sender.id
+        )
 
 workflow_object_saved.connect(index_holdingpen_record)
 listen(BibWorkflowObject, "after_delete", delete_from_index)
-
-signals.pre_command.connect(delete_holdingpen_index, sender=drop)
-signals.pre_command.connect(create_holdingpen_index, sender=create)
-signals.pre_command.connect(delete_holdingpen_index, sender=recreate)
-signals.pre_command.connect(create_holdingpen_index, sender=recreate)
