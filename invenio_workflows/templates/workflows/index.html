@@ -24,11 +24,11 @@
     <div class="col-md-6 col-sm-12">
       <ul class="list-group">
         <li class="list-group-item list-group-item-warning">
-          <span class="badge">{{ halted_state|length }}</span>
+          <span class="badge">{{ halted_state_total }}</span>
           {{ _("Records that needs attention") }}
         </li>
         <li class="list-group-item list-group-item-danger">
-          <span class="badge">{{ error_state|length }}</span>
+          <span class="badge">{{ error_state_total }}</span>
           {{ _("Records in error state") }}
         </li>
       </ul>

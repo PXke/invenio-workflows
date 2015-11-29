@@ -22,28 +22,32 @@
 from flask import current_app
 
 from invenio_base.globals import cfg
+
 from invenio_search.api import Query
 
 
-def search(query, sorting={}):
-    """Return a set of matched workflow object IDs."""
+def search(query, per_page, page, sorting={}):
+    """Return a slice of matched workflow object IDs and total hit-count."""
     results = Query(query)
     # Disable enhancing to avoid searching in default collection only
     response = results.search(enhance=False)
-    response.index = cfg['WORKFLOWS_HOLDING_PEN_ES_PREFIX'] + '*'
+    response.index = cfg["WORKFLOWS_HOLDING_PEN_ES_PREFIX"] + "*"
     response.doc_type = current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE")
     if sorting:
         response.body.update(sorting)
-    # FIXME pagination
-    response.body["size"] = 99999999
+    response.body["size"] = per_page
+    response.body["from"] = (page - 1) * per_page
     current_app.logger.debug(response.body)
-    return [int(r['_id']) for r in response._search()['hits']['hits']]
+    results = response._search()["hits"]
+    return [int(r["_id"]) for r in results["hits"]], results["total"]
 
 
 def get_holdingpen_objects(tags_list=None,
                            sort_key="modified",
+                           per_page=25,
+                           page=1,
                            operator="AND"):
-    """Get records for display in Holding Pen."""
+    """Get records for display in Holding Pen, return ids and total count."""
     if sort_key.endswith("_desc"):
         order = "desc"
         sort_key = sort_key[:-5]
@@ -62,5 +66,7 @@ def get_holdingpen_objects(tags_list=None,
     }
     return search(
         query=" {0} ".format(operator).join(tags_list),
+        per_page=per_page,
+        page=page,
         sorting=sorting
     )
