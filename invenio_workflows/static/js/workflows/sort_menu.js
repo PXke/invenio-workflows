@@ -40,11 +40,10 @@ define(
     */
     function HoldingPenSort() {
       this.attributes({
-        sortMenuitemSelector: "#sort-menu a"
+        sortMenuitemSelector: "#hp-sort-menu a"
       });
 
       this.changeSort = function(ev, data) {
-        console.log($(data.el).attr("name"));
         var sort_key = $(data.el).attr("name");
         this.trigger(document, "reloadHoldingPenTable", {"sort_key": sort_key});
       };

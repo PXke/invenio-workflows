@@ -42,7 +42,7 @@
         page: 1,
         per_page: 10
       };
-      var $node = $("#tags");
+      var $node = $("#hp-tags");
       $node.tagsinput({
           tagClass: function (item) {
               switch (item.value) {
@@ -100,13 +100,13 @@
           <ul class="nav navbar-nav">
             {% block navigation_check_all %}
               <li class="navbar-btn">
-                  <input id="list-select-all" type="checkbox">
+                  <input id="hp-list-select-all" type="checkbox">
               </li>
             {% endblock %}
             {% block navigation_pagination %}
             <p class="navbar-text">{{ _('Showing') }}:</p>
             <li class="navbar-btn">
-              <select id="perpage-menu"
+              <select id="hp-perpage-menu"
                       aria-controls="list"
                       class="form-control input-sm">
                   <option {% if per_page == 10 %} selected {% endif %} value="10">10</option>
@@ -120,7 +120,7 @@
           {% block navigation_search_filter %}
           <form class="navbar-form navbar-left" role="search">
             <div class="form-group">
-              <input id="tags" type="text" class="form-control" placeholder="{{ _("Add to search") }}">
+              <input id="hp-tags" type="text" class="form-control" placeholder="{{ _("Add to search") }}">
             </div>
           </form>
           {% endblock %}
@@ -141,8 +141,8 @@
             {% block navigation_type_selection %}
               {% if type_list %}
               <li class="dropdown">
-                <a class="dropdown-toggle dropdown-headline" data-toggle="dropdown" href="#">{{ _('Type') }}<b class="caret"></b></a>
-                <ul id="type-menu" class="dropdown-menu">
+                <a class="dropdown-toggle dropdown-headline" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">{{ _('Type') }}<b class="caret"></b></a>
+                <ul id="hp-type-menu" class="dropdown-menu">
                   {% for type_name in type_list %}
                     <li>
                       <a class="task-btn" name="{{type_name}}">{{ type_name }}</a>
@@ -156,7 +156,7 @@
             {% block navigation_status_selection %}
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle dropdown-headline" data-toggle="dropdown">{{ _('Status') }}<b class="caret"></b></a>
-                <ul id="tags-menu" class="dropdown-menu" role="menu">
+                <ul id="hp-tags-menu" class="dropdown-menu" role="menu">
                   <li><a id="version-halted" class="version-selection" name="Need action">{{ _('Need action') }}</a></li>
                   <li><a id="version-waiting" class="version-selection" name="Waiting">{{ _('Waiting') }}</a></li>
                   <li><a id="version-completed" class="version-selection" name="Done">{{ _('Done') }}</a></li>
@@ -170,7 +170,7 @@
             {% block navigation_sort_selection %}
               <li class="dropdown">
                 <a class="dropdown-toggle dropdown-headline" data-toggle="dropdown" href="#">{{ _('Sort') }}<b class="caret"></b></a>
-                <ul id="sort-menu" class="dropdown-menu" role="menu">
+                <ul id="hp-sort-menu" class="dropdown-menu" role="menu">
                     <li><a class="task-btn" name="created_desc">{{ _("Newest")}}</a></li>
                     <li><a class="task-btn" name="created">{{ _("Oldest")}}</a></li>
                     <li><a class="task-btn" name="modified_desc">{{ _("Recently updated")}}</a></li>
@@ -187,7 +187,7 @@
       </nav>
       {% endblock %}
       {% block table %}
-      <table id="list"
+      <table id="hp-list"
              cellpadding="0"
              cellspacing="0"
              border="0"
@@ -197,7 +197,7 @@
       </table>
       {% endblock %}
       {% block pagination %}
-      <div id="pagination"></div>
+      <div id="hp-pagination"></div>
       {% endblock %}
     </div>
   </div>

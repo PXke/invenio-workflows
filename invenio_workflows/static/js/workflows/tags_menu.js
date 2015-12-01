@@ -41,7 +41,7 @@ define(
     function HoldingPenTagsMenu() {
 
       this.attributes({
-        menuitemSelector: "#menu a",
+        menuitemSelector: "#hp-tags-menu a",
         valuePrefix: ""
       });
 
@@ -49,7 +49,7 @@ define(
         var value = this.attr.valuePrefix + '"' + data.el.name + '"';
         this.trigger(document, "addTagFromMenu", {
           value: value,
-          text: data.el.name
+          text: value
         });
       };
 

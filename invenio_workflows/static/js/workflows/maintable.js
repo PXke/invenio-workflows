@@ -42,29 +42,30 @@ define(
 
     function initialize(context) {
       HoldingPenCommon.attachTo(document);
-      HoldingPen.attachTo("#list", {
+      HoldingPen.attachTo("#hp-list", {
         load_url: context.load_table_url,
         page: context.page,
         per_page: context.per_page
       });
-      HoldingPenPagination.attachTo("#pagination");
-      HoldingPenPerPage.attachTo("#perpage-menu");
-      HoldingPenSort.attachTo("#sort-menu");
-      HoldingPenTags.attachTo("#tags", {
+      HoldingPenPagination.attachTo("#hp-pagination");
+      HoldingPenPerPage.attachTo("#hp-perpage-menu");
+      HoldingPenSort.attachTo("#hp-sort-menu");
+      HoldingPenTags.attachTo("#hp-tags", {
         tags: context.tags
       });
-      HoldingPenTagsMenu.attachTo("#tags-menu", {
-        menuitemSelector: "#tags-menu a",
+      HoldingPenTagsMenu.attachTo("#hp-tags-menu", {
+        menuitemSelector: "#hp-tags-menu a",
         valuePrefix: "version:"
       });
-      HoldingPenTagsMenu.attachTo("#type-menu", {
-        menuitemSelector: "#type-menu a",
+      HoldingPenTagsMenu.attachTo("#hp-type-menu", {
+        menuitemSelector: "#hp-type-menu a",
         valuePrefix: "type:"
       });
-      HoldingPenTagsMenu.attachTo("#filter-menu", {
-        menuitemSelector: "#filter-menu a",
+      HoldingPenTagsMenu.attachTo("#hp-filter-menu", {
+        menuitemSelector: "#hp-filter-menu a",
         valuePrefix: "f:"
       });
+
       HoldingPenSelection.attachTo(document);
     }
 

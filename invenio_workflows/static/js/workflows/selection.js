@@ -43,7 +43,7 @@ define(
 
       this.attributes({
           selectedIDs: [],
-          selectAllSelector: "#list-select-all",
+          selectAllSelector: "#hp-list-select-all",
           checkboxSelector: ".row-checkbox input[type=checkbox]",
           rowSelector: "*[data-href]",
 

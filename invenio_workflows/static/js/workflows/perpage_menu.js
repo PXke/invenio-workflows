@@ -36,23 +36,15 @@ define(
     *
     * Holding Pen per page dropdown.
     *
-    *
     */
     function HoldingPenPerPage() {
-      this.attributes({
-        perpageSelector: "#perpage-menu"
-      });
-
       this.changePerPage = function(ev, data) {
-        console.log($(data.el).val());
-        var per_page = $(data.el).val();
+        var per_page = $(ev.target).val();
         this.trigger(document, "reloadHoldingPenTable", {"per_page": per_page});
       };
 
       this.after('initialize', function() {
-        this.on("change", {
-          perpageSelector: this.changePerPage,
-        });
+        this.on("change", this.changePerPage);
         console.log("Perpage init");
       });
     }
