@@ -540,26 +540,24 @@ class DbWorkflowObject(db.Model):
             pass
         return
 
-    def get_formatted_data(self, of=None):
+    def get_formatted_data(self, **kwargs):
         """Get the formatted representation for this object."""
         # XXX: return "" instead of exception?
         from .registry import workflows
-        if of is None:
-            of = cfg.get("WORKFLOWS_HOLDING_PEN_DEFAULT_OUTPUT_FORMAT")
         try:
             name = self.get_workflow_name()
             if not name:
-                return ""
+                return "Did not find any way to format data."
             workflow_definition = workflows[name]
             formatted_data = workflow_definition.formatter(
                 self,
-                of=of
+                **kwargs
             )
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError) as err:
             # Somehow the workflow or formatter does not exist
             from invenio_ext.logging import register_exception
             register_exception(alert_admin=True)
-            formatted_data = ""
+            formatted_data = "Error formatting record: {0}".format(err)
         return formatted_data
 
     def __repr__(self):

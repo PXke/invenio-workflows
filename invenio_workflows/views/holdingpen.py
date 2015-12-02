@@ -480,5 +480,5 @@ def entry_data_preview(objectid, of):
     if not bwobject:
         flash("No object found for %s" % (objectid,))
         return jsonify(data={})
-    formatted_data = bwobject.get_formatted_data(of)
+    formatted_data = bwobject.get_formatted_data(of=of)
     return jsonify(data=formatted_data)
