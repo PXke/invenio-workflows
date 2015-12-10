@@ -22,24 +22,91 @@
 from flask import current_app
 
 from invenio_base.globals import cfg
+from invenio_base.helpers import unicodifier
 
-from invenio_search.api import Query
+from invenio_ext.es import es
 
 
-def search(query, per_page, page, sorting={}):
-    """Return a slice of matched workflow object IDs and total hit-count."""
-    results = Query(query)
-    # Disable enhancing to avoid searching in default collection only
-    response = results.search(enhance=False)
-    response.index = cfg["WORKFLOWS_HOLDING_PEN_ES_PREFIX"] + "*"
-    response.doc_type = current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE")
-    if sorting:
-        response.body.update(sorting)
-    response.body["size"] = per_page
-    response.body["from"] = (page - 1) * per_page
-    current_app.logger.debug(response.body)
-    results = response._search()["hits"]
-    return [int(r["_id"]) for r in results["hits"]], results["total"]
+class Query(object):
+    """Search engine implemetation."""
+
+    def __init__(self, query, **kwargs):
+        """Initialize with search query and other arguments."""
+        self.query = unicodifier(query)
+        self.kwargs = kwargs
+
+    def build(self, query):
+        """Build engine query."""
+        if not query:
+            return {
+                "match_all": []
+            }
+        return {
+            "query_string": {
+                "query": query
+            }
+        }
+
+    def search(self, **kwargs):
+        """Search records."""
+        self.kwargs.update(kwargs)
+        return Results(query=self.build(self.query), **self.kwargs)
+
+
+class Results(object):
+    """Search results wrapper."""
+
+    def __init__(self, query, index=None, doc_type=None, **kwargs):
+        """Create results object."""
+        self.body = {
+            'from': 0,
+            'size': 10,
+            'query': query,
+        }
+        self.body.update(kwargs)
+
+        self.index = index
+        self.doc_type = doc_type or 'record'
+
+        self._results = None
+
+    @property
+    def recids(self):
+        """Return list of recids for current query."""
+        return [int(r['_id']) for r in self._search()['hits']['hits']]
+
+    def _search(self):
+        if self._results is None:
+            self._results = es.search(
+                index=self.index,
+                doc_type=self.doc_type,
+                body=self.body,
+            )
+        return self._results
+
+    def records(self):
+        """Return list of records for current query."""
+        from invenio_records.api import Record
+        return [Record(r['_source']) for r in self._search()['hits']['hits']]
+
+    def __len__(self):
+        """Return total number of hits."""
+        return self._search()['hits']['total']
+
+
+def search(query, per_page, page, sort=None):
+    """Return a slice of matched workflow object IDs and total hits."""
+    params = {
+        "query": query,
+        "index": cfg["WORKFLOWS_HOLDING_PEN_ES_PREFIX"] + "*",
+        "doc_type": current_app.config.get("WORKFLOWS_HOLDING_PEN_DOC_TYPE"),
+        "sort": sort or {},
+        "size": min(per_page, 10000),
+        "from": (page - 1) * min(per_page, 10000)
+    }
+    results = Query(**params)
+    results = results.search()
+    return results.recids, len(results)
 
 
 def get_holdingpen_objects(tags_list=None,
@@ -58,15 +125,13 @@ def get_holdingpen_objects(tags_list=None,
         sort_key = "modified"
 
     sorting = {
-        "sort": {
-            sort_key: {
-                "order": order
-            }
+        sort_key: {
+            "order": order
         }
     }
     return search(
         query=" {0} ".format(operator).join(tags_list),
         per_page=per_page,
         page=page,
-        sorting=sorting
+        sort=sorting
     )
