@@ -44,9 +44,23 @@ define(
     */
     function HoldingPenTags() {
 
+      this.attributes({
+        tags: null
+      });
+
       this.addTagFromMenu = function(ev, data) {
-        // Tagsinput already deal with existing tags.
-        this.$node.tagsinput('add', data);
+        // Tagsinput already deal with identical tags, but we need to remove
+        // tags from the same menu.
+        var that = this;
+        if (data.prefix) {
+            var tags_to_remove = $.grep(this.$node.tagsinput("items"), function(item, index) {
+              return item.value.slice(0, data.prefix.length) == data.prefix;
+            });
+            $.each(tags_to_remove, function(index, item) {
+              that.$node.tagsinput('remove', item)
+            })
+        }
+        this.$node.tagsinput('add', {text: data.text, value: data.value});
       };
 
       this.addTagFromFreetext = function(ev) {
@@ -78,6 +92,34 @@ define(
         this.on("itemAdded", this.onTagsUpdate);
         this.on("itemRemoved", this.onTagsUpdate);
         this.on('beforeFreeInputItemAdd', this.addTagFromFreetext);
+
+        this.$node.tagsinput({
+            tagClass: function (item) {
+                switch (item.value) {
+                  case 'version:"In process"':
+                    return 'label label-warning';
+                  case 'version:"Need action"':
+                    return 'label label-danger';
+                  case 'version:"Waiting"':
+                    return 'label label-warning';
+                  case 'version:"Done"':
+                    return 'label label-success';
+                  case 'version:"New"':
+                    return 'label label-info';
+                  case 'version:"Error"':
+                    return 'label label-danger';
+                  default:
+                    return 'badge badge-warning';
+                }
+            },
+            itemValue: 'value',
+            itemText: 'text'
+        });
+        // Add any existing tags
+        var that = this;
+        this.attr.tags.map(function(item) {
+          that.$node.tagsinput('add', item);
+        });
         console.log("Tags init");
       });
     }
