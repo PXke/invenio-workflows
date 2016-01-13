@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -50,10 +50,15 @@ def delete_from_index(mapper, connection, target):
         )
 
 
+@workflow_object_saved.connect
 def index_holdingpen_record(sender, **kwargs):
     """Index a Holding Pen record."""
     from invenio_ext.es import es
     from invenio_records.api import Record
+    from invenio_records.signals import before_record_index
+    from invenio_records.recordext.functions.get_record_collections import (
+        get_record_collections,
+    )
 
     from .registry import workflows
     from .models import ObjectVersion
@@ -99,13 +104,13 @@ def index_holdingpen_record(sender, **kwargs):
     except Exception as err:
         current_app.logger.exception(err)
 
-    # FIXME: Tmp fix to add collection due to invenio_search
-    from invenio_records.recordext.functions.get_record_collections import (
-        get_record_collections,
-    )
-
+    # Add collection to get correct mapping
     record["_collections"] = get_record_collections(record)
 
+    # Trigger any before_record_index receivers
+    before_record_index.send(sender.id, json=record)
+
+    # Depends on "_collections" being filled correctly for record
     record_index = get_record_index(record)
     if record_index:
         index = cfg['WORKFLOWS_HOLDING_PEN_ES_PREFIX'] + record_index
@@ -116,5 +121,4 @@ def index_holdingpen_record(sender, **kwargs):
             id=sender.id
         )
 
-workflow_object_saved.connect(index_holdingpen_record)
 listen(BibWorkflowObject, "after_delete", delete_from_index)
