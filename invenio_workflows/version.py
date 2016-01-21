@@ -28,4 +28,4 @@ This file is imported by ``invenio_workflows.__init__``,
 and parsed by ``setup.py``.
 """
 
-__version__ = "0.1.3.dev20160113"
+__version__ = "0.1.3.dev20160121"
