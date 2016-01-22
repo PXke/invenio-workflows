@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2013, 2014, 2015 CERN.
+# Copyright (C) 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -57,7 +57,6 @@ from invenio_base.i18n import _
 
 from invenio_ext.principal import permission_required
 
-from invenio_utils.date import pretty_date
 from invenio_utils.pagination import Pagination
 
 from six import text_type
@@ -65,11 +64,10 @@ from six import text_type
 from ..acl import viewholdingpen
 from ..api import continue_oid_delayed, start_delayed
 from ..models import DbWorkflowObject, ObjectStatus, Workflow
-from ..registry import actions, workflows
+from ..registry import actions
 from ..search import get_holdingpen_objects
 from ..utils import (
     alert_response_wrapper,
-    extract_data,
     get_data_types,
     get_previous_next_objects,
     get_rendered_task_results,
@@ -243,11 +241,8 @@ def list_objects(tags_slug=None):
 @permission_required(viewholdingpen.name)
 def details(objectid):
     """Display info about the object."""
-    from ..utils import get_workflow_info
-    from invenio_ext.sqlalchemy import db
-    from itertools import groupby
-
     bwobject = DbWorkflowObject.query.get_or_404(objectid)
+
     # FIXME(jacquerie): to be removed in workflows >= 2.0
     bwobject.data = bwobject.get_data()
     bwobject.extra_data = bwobject.get_extra_data()
@@ -257,8 +252,6 @@ def details(objectid):
         objectid
     )
     formatted_data = bwobject.get_formatted_data()
-    extracted_data = extract_data(bwobject)
-
     action_name = bwobject.get_action()
     if action_name:
         action = actions[action_name]
@@ -266,50 +259,16 @@ def details(objectid):
     else:
         rendered_actions = {}
 
-    if bwobject.id_parent:
-        history_objects_db_request = DbWorkflowObject.query.filter(
-            db.or_(DbWorkflowObject.id_parent == bwobject.id_parent,
-                   DbWorkflowObject.id == bwobject.id_parent,
-                   DbWorkflowObject.id == bwobject.id)).all()
-    else:
-        history_objects_db_request = DbWorkflowObject.query.filter(
-            db.or_(DbWorkflowObject.id_parent == bwobject.id,
-                   DbWorkflowObject.id == bwobject.id)).all()
-
-    history_objects = {}
-    temp = groupby(history_objects_db_request,
-                   lambda x: x.status)
-    for key, value in temp:
-        if key != DbWorkflowObject.known_statuses.RUNNING:
-            value = list(value)
-            value.sort(key=lambda x: x.modified, reverse=True)
-            history_objects[key] = value
-
-    history_objects = sum(history_objects.values(), [])
-    for obj in history_objects:
-        obj._class = HOLDINGPEN_WORKFLOW_STATES[obj.status]["class"]
-        obj.message = HOLDINGPEN_WORKFLOW_STATES[obj.status]["message"]
     results = get_rendered_task_results(bwobject)
-    workflow_definition = get_workflow_info(extracted_data['workflow_func'])
-    task_history = bwobject.get_extra_data().get('_task_history', [])
     return render_template(
         'workflows/details.html',
         bwobject=bwobject,
         rendered_actions=rendered_actions,
-        history_objects=history_objects,
-        bwparent=extracted_data['bwparent'],
-        info=extracted_data['info'],
-        log=extracted_data['logtext'],
         data_preview=formatted_data,
-        workflow=extracted_data['w_metadata'],
+        workflow_name=bwobject.get_workflow_name(),
         task_results=results,
         previous_object=previous_object,
         next_object=next_object,
-        task_history=task_history,
-        workflow_definition=workflow_definition,
-        versions=ObjectStatus,
-        pretty_date=pretty_date,
-        workflow_class=workflows.get(extracted_data['w_metadata'].name),
     )
 
 

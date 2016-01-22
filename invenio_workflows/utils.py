@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -25,7 +25,6 @@ from functools import wraps
 
 from flask import current_app, jsonify, render_template
 from operator import attrgetter
-from six import text_type
 
 from sqlalchemy import or_
 
@@ -33,7 +32,10 @@ from invenio_base.helpers import unicodifier
 from invenio_base.wrappers import lazy_import
 from invenio_ext.cache import cache
 
-from flask import current_app, jsonify, render_template
+import msgpack
+
+from six import text_type
+
 from .registry import actions, workflows
 
 DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
@@ -228,9 +230,6 @@ def generate_formatted_holdingpen_object(
     else:
         workflow_definition = WorkflowBase
 
-    bwo.data = bwo.get_data()
-    bwo.extra_data = bwo.get_extra_data()
-
     action_name = bwo.get_action() or ""
     action = actions.get(action_name, None)
     mini_action = getattr(action, "render_mini", "")
@@ -279,59 +278,6 @@ def get_pretty_date(bwo):
 def get_type(bwo):
     """Get the type of the Object."""
     return bwo.data_type
-
-
-def get_info(bwobject):
-    """Parse the hpobject and extracts its info to a dictionary."""
-    info = {}
-    if bwobject.get_extra_data()['owner'] != {}:
-        info['owner'] = bwobject.get_extra_data()['owner']
-    else:
-        info['owner'] = 'None'
-    info['parent id'] = bwobject.id_parent
-    info['workflow id'] = bwobject.id_workflow
-    info['object id'] = bwobject.id
-    info['action'] = bwobject.get_action()
-    return info
-
-
-def extract_data(bwobject):
-    """Extract needed metadata from BibWorkflowObject.
-
-    Used for rendering the Record's holdingpen table row and
-    details and action page.
-    """
-    from invenio_workflows.models import Workflow
-    extracted_data = {}
-    if bwobject.id_parent is not None:
-        extracted_data['bwparent'] = \
-            DbWorkflowObject.query.get(bwobject.id_parent)
-    else:
-        extracted_data['bwparent'] = None
-
-    # TODO: read the logstuff from the db
-    extracted_data['loginfo'] = ""
-    extracted_data['logtext'] = {}
-
-    for log in extracted_data['loginfo']:
-        extracted_data['logtext'][log.get_extra_data()['_last_task_name']] = \
-            log.message
-
-    extracted_data['info'] = get_info(bwobject)
-    try:
-        extracted_data['info']['action'] = bwobject.get_action()
-    except (KeyError, AttributeError):
-        pass
-
-    extracted_data['w_metadata'] = \
-        Workflow.query.filter(Workflow.uuid == bwobject.id_workflow).first()
-    if extracted_data['w_metadata']:
-        workflow_def = get_workflow_definition(
-            extracted_data['w_metadata'].name)
-        extracted_data['workflow_func'] = workflow_def
-    else:
-        extracted_data['workflow_func'] = []
-    return extracted_data
 
 
 def get_data_types():
@@ -391,6 +337,8 @@ def get_rendered_row(obj_id):
     from .models import BibWorkflowObject
 
     bwo = BibWorkflowObject.query.get(obj_id)
+    bwo.data = bwo.get_data()
+    bwo.extra_data = bwo.get_extra_data()
     if not bwo:
         current_app.logger.error("BibWorkflowObject not found for {0}".format(obj_id))
         return ""
