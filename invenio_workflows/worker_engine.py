@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -17,6 +17,8 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 """Mediator between API and workers responsible for running the workflows."""
+
+from invenio_base.globals import cfg
 
 from workflow.errors import WorkflowObjectStatusError
 
@@ -66,23 +68,30 @@ def restart_worker(wid, **kwargs):
 
     if "data" not in kwargs:
         objects = []
-        # First we get all initial objects
-        initials = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == wid,
-            DbWorkflowObject.status == DbWorkflowObject.known_statuses.INITIAL
-        ).all()
 
-        # Then we reset their children to the same state as initial
-        for initial_object in initials:
-            running_object = DbWorkflowObject.query.filter(
-                DbWorkflowObject.id == initial_object.id_parent
-            ).one()
-            old_id_parent = running_object.id_parent
-            running_object.copy(initial_object)
-            running_object.id_parent = old_id_parent
-            running_object.save()
+        if cfg['WORKFLOWS_SNAPSHOTS_ENABLED']:
+            # Get data from initial object
+            initials = DbWorkflowObject.query.filter(
+                DbWorkflowObject.id_workflow == wid,
+                DbWorkflowObject.status == DbWorkflowObject.known_statuses.INITIAL
+            ).all()
 
-            objects.append(running_object)
+            # Then we reset their children to the same state as initial
+            for initial_object in initials:
+                running_object = DbWorkflowObject.query.filter(
+                    DbWorkflowObject.id == initial_object.id_parent
+                ).one()
+                old_id_parent = running_object.id_parent
+                running_object.copy(initial_object)
+                running_object.id_parent = old_id_parent
+                running_object.save()
+
+                objects.append(running_object)
+        else:
+            # No initial data, take current data
+            objects = DbWorkflowObject.query.filter(
+                DbWorkflowObject.id_workflow == wid,
+            ).all()
     else:
         objects = get_workflow_object_instances(kwargs["data"], engine)
     run_workflow(wfe=engine, data=objects)
@@ -147,16 +156,17 @@ def get_workflow_object_instances(data, engine):
     for data_object in data:
         if isinstance(data_object, DbWorkflowObject):
             data_object.data_type = data_type = data_type or engine.get_default_data_type()
+
             if data_object.id:
                 data_object.log.debug("Existing workflow object found for "
-                                      "this object. Saving a snapshot.")
+                                      "this object.")
                 if data_object.status == data_object.known_statuses.COMPLETED:
                     data_object.status = data_object.known_statuses.INITIAL
-                workflow_objects.append(
+
+                if cfg['WORKFLOWS_SNAPSHOTS_ENABLED']:
                     generate_snapshot(data_object, engine)
-                )
-            else:
-                workflow_objects.append(data_object)
+
+            workflow_objects.append(data_object)
         else:
             data_type = data_type or engine.get_default_data_type()
             # Data is not already a DbWorkflowObject, we then
@@ -167,6 +177,8 @@ def get_workflow_object_instances(data, engine):
                 engine,
                 data_type
             )
+            if cfg['WORKFLOWS_SNAPSHOTS_ENABLED']:
+                generate_snapshot(current_obj, engine)
             workflow_objects.append(current_obj)
 
     return workflow_objects
@@ -238,7 +250,4 @@ def create_data_object_from_data(data_object, engine, data_type):
     )
 
     current_obj.set_data(data_object)
-    current_obj.save()
-
-    generate_snapshot(current_obj, engine)
     return current_obj

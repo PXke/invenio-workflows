@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -24,6 +24,9 @@ WORKFLOWS_HOLDING_PEN_CACHE_TIMEOUT = 2629743  # one month
 
 WORKFLOWS_HOLDING_PEN_DEFAULT_OUTPUT_FORMAT = "hd"
 """The default timeout when formatting Holding Pen detailed pages."""
+
+WORKFLOWS_SNAPSHOTS_ENABLED = False
+"""Enable to create an copy of each BibWorkflowObject with initial data."""
 
 WORKFLOWS_DATA_PROCESSORS = {
     'json': 'json.load',

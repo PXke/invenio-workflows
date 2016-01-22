@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -211,13 +211,13 @@ class BibWorkflowEngine(DbWorkflowEngine):
     @property
     def has_completed(self):
         """Return True if workflow is fully completed."""
-        res = self.db.session.query(self.db.func.count(DbWorkflowObject.id)).\
-            filter(DbWorkflowObject.id_workflow == self.uuid).\
-            filter(DbWorkflowObject.status.in_(
-                [DbWorkflowObject.known_statuses.INITIAL,
-                 DbWorkflowObject.known_statuses.COMPLETED]
-            )).group_by(DbWorkflowObject.status).all()
-        return len(res) == 2 and res[0] == res[1]
+        objects_in_db = DbWorkflowObject.query.filter(
+            DbWorkflowObject.id_workflow == self.uuid
+        ).filter(DbWorkflowObject.version.in_([
+            DbWorkflowObject.known_statuses.INITIAL,
+            DbWorkflowObject.known_statuses.COMPLETED,
+        ])).count()
+        return objects_in_db == len(self.objects)
 
     def set_workflow_by_name(self, workflow_name):
         """Configure the workflow to run by the name of this one.
