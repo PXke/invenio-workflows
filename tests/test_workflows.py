@@ -33,8 +33,8 @@ from functools import partial
 from workflow.engine_db import WorkflowStatus
 from workflow.errors import WorkflowError, WorkflowObjectStatusError
 
-from invenio.testsuite import InvenioTestCase, make_test_suite, run_test_suite
-from invenio.base.wrappers import lazy_import
+from invenio_testing import InvenioTestCase
+from invenio_base.wrappers import lazy_import
 
 ObjectStatus = lazy_import("invenio_workflows.models.ObjectStatus")
 DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
@@ -252,6 +252,9 @@ distances from it.
 
     def test_workflow_object_creation(self):
         """Test to see if the right snapshots or object versions are created."""
+        from flask import current_app
+        current_app.config['WORKFLOWS_SNAPSHOTS_ENABLED'] = True
+
         initial_data = 22
         final_data = 40
 
@@ -286,23 +289,14 @@ distances from it.
                          data=[initial_data])
 
         # Get parent object of the workflow we just ran
-        initial_object = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == workflow.uuid,
-            DbWorkflowObject.id_parent == None).first()  # noqa E711
-        test_object = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == workflow.uuid,
-            DbWorkflowObject.id_parent == initial_object.id).first()
         all_objects = DbWorkflowObject.query.filter(
             DbWorkflowObject.id_workflow == workflow.uuid
         ).order_by(DbWorkflowObject.id).all()
 
         # There should only be 2 objects (initial, final)
-        self.assertEqual(2, len(all_objects))
-        self.assertEqual(test_object.id_parent, initial_object.id)
-        self.assertEqual(initial_object.known_statuses.COMPLETED, initial_object.status)
-        self.assertEqual(final_data, initial_object.get_data())
-        self.assertEqual(initial_data, test_object.get_data())
-        self.assertEqual(initial_object.known_statuses.INITIAL, test_object.status)
+        self.assertEqual(1, len(all_objects))
+        self.assertEqual(ObjectVersion.COMPLETED, all_objects[0].version)
+        self.assertEqual(final_data, all_objects[0].get_data())
 
     def test_workflow_complex_run(self):
         """Test running workflow with several data objects."""
@@ -321,23 +315,8 @@ distances from it.
         # Let's check that we found anything.
         # There should only be two objects
         self.assertEqual(2, len(objects))
-
-        all_objects = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == workflow.uuid
-        ).order_by(DbWorkflowObject.id).all()
-
-        self.assertEqual(4, len(all_objects))
-
-        for obj in objects:
-            # The child object should have the final or halted status
-            # FIXME: Exactly what is not deterministic about this workflow?
-            obj0 = obj.child_objects[0]
-            self.assertTrue(obj0.status in (obj0.known_statuses.INITIAL,
-                                            obj0.known_statuses.HALTED))
-            # Making sure the final data is correct
-            self.assertTrue(obj.get_data() in final_data)
-            self.assertTrue(obj0.get_data() in test_data)
-
+        self.assertEqual(1, objects[0].get_data())
+        self.assertEqual(38, objects[1].get_data())
 
     def test_workflow_marcxml(self):
         """Test running a record ingestion workflow with a action step."""
@@ -346,26 +325,14 @@ distances from it.
 
         # Get objects of the workflow we just ran
         objects = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == workflow.uuid,
-            DbWorkflowObject.id_parent == None  # noqa E711
-        ).order_by(DbWorkflowObject.id).all()
-
-        self._check_workflow_execution(objects, initial_data)
-
-        all_objects = DbWorkflowObject.query.filter(
             DbWorkflowObject.id_workflow == workflow.uuid
         ).order_by(DbWorkflowObject.id).all()
 
-        self.assertEqual(2, len(all_objects))
-
+        # Let's check that we found anything. There should only be one object
+        self.assertEqual(len(objects), 1)
+        self.assertEqual(ObjectVersion.HALTED, objects[0].version)
         self.assertEqual(WorkflowStatus.HALTED, workflow.status)
-
-        current = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == workflow.uuid,
-            DbWorkflowObject.status == DbWorkflowObject.known_statuses.HALTED
-        ).one()
-
-        self.assertEqual(current.get_action(), "approval")
+        self.assertEqual(objects[0].get_action(), "approval")
 
     def test_workflow_for_halted_object(self):
         """Test workflow with continuing a halted object."""
@@ -509,7 +476,10 @@ distances from it.
 
     def test_restart_workflow(self):
         """Test restarting workflow for given workflow id."""
+        from flask import current_app
         from invenio_workflows.api import start_by_wid
+
+        current_app.config['WORKFLOWS_SNAPSHOTS_ENABLED'] = True
 
         initial_data = 1
 
@@ -553,22 +523,6 @@ distances from it.
                                            oids=[initial_data.id])
         self.assertEqual(initial_data.status, initial_data.known_statuses.WAITING)
         self.assertEqual(restarted_workflow.status, WorkflowStatus.HALTED)
-
-    def _check_workflow_execution(self, objects, initial_data):
-        """Test correct workflow execution."""
-        # Let's check that we found anything. There should only be one object
-        self.assertEqual(len(objects), 1)
-        parent_object = objects[0]
-
-        # The object should be the inital status
-        self.assertEqual(parent_object.known_statuses.HALTED, parent_object.status)
-
-        # The object should have the inital data
-        self.assertEqual(initial_data, objects[0].child_objects[0].get_data())
-
-        # Fetch final object which should exist
-        final_object = objects[0].child_objects[0]
-        self.assertTrue(final_object)
 
 
 class TestWorkflowTasks(WorkflowTasksTestCase):

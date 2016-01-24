@@ -20,12 +20,11 @@
 
 """ Test for workflow not fitting in other categories."""
 
-from invenio.testsuite import make_test_suite, run_test_suite
-
-from test_workflows import WorkflowTasksTestCase
 import sys
-from six import StringIO
+
 from contextlib import contextmanager
+from test_workflows import WorkflowTasksTestCase
+from six import StringIO
 
 
 @contextmanager
@@ -95,8 +94,3 @@ class WorkflowOthers(WorkflowTasksTestCase):
                 self.assertTrue("call_a()" in e.message)
                 self.assertTrue("call_b()" in e.message)
                 self.assertTrue("call_c()" in e.message)
-
-TEST_SUITE = make_test_suite(WorkflowOthers)
-
-if __name__ == "__main__":
-    run_test_suite(TEST_SUITE)

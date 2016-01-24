@@ -46,10 +46,14 @@ class WorkflowDelayedTest(WorkflowTasksTestCase):
 
     def test_workflow_delay(self):
         """Test simple delayed workflow."""
+        from flask import current_app
+
         from invenio_workflows.models import DbWorkflowObject
         from invenio_workflows.api import (start_delayed,
                                            continue_oid_delayed,
                                            start_by_wid_delayed)
+
+        current_app.config['WORKFLOWS_SNAPSHOTS_ENABLED'] = True
 
         test_objectb = DbWorkflowObject()
         test_objectb.set_data(20)
