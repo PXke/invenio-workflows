@@ -19,6 +19,8 @@
 
 """Various utility functions for use across the workflows module."""
 
+import msgpack
+
 from functools import wraps
 
 from flask import current_app, jsonify, render_template
@@ -27,27 +29,16 @@ from six import text_type
 
 from sqlalchemy import or_
 
-from invenio.base.helpers import unicodifier
-from invenio.base.wrappers import lazy_import
-from invenio.ext.cache import cache
+from invenio_base.helpers import unicodifier
+from invenio_base.wrappers import lazy_import
+from invenio_ext.cache import cache
 
 from flask import current_app, jsonify, render_template
+from .registry import actions, workflows
 
 DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
 Workflow = lazy_import("invenio_workflows.models.Workflow")
 
-
-from invenio_ext.cache import cache
-
-from invenio_base.helpers import unicodifier
-
-import msgpack
-
-from six import text_type
-
-from sqlalchemy import or_
-
-from .registry import actions, workflows
 
 
 class BibWorkflowObjectIdContainer(object):

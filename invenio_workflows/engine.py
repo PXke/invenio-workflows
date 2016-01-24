@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from copy import deepcopy
 from uuid import uuid1 as new_uuid
 
-from invenio.ext.sqlalchemy import db
+from invenio_ext.sqlalchemy import db
 
 from workflow.engine import (
     ActionMapper,
@@ -378,7 +378,7 @@ class InvTransitionAction(DbTransitionAction):
                 eng.name, eng.current_taskname or "Unknown", e.message
             )
         else:
-            from invenio.utils.deprecation import RemovedInInvenio23Warning
+            from invenio_utils.deprecation import RemovedInInvenio23Warning
             import warnings
             warnings.warn(
                 "Raising HaltProcessing with e.action to emulate "

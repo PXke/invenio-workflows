@@ -23,7 +23,7 @@ import os
 import cPickle
 import base64
 
-from invenio.legacy.dbquery import run_sql
+from invenio_ext.legacy.dbquery import run_sql
 
 depends_on = ["workflows_2014_08_12_initial"]
 

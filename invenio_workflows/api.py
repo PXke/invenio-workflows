@@ -25,7 +25,7 @@ this is the high level API you will want to use.
 
 from werkzeug.utils import import_string, cached_property
 
-from invenio.base.globals import cfg
+from invenio_base.globals import cfg
 
 from .models import DbWorkflowObject
 from .utils import BibWorkflowObjectIdContainer
@@ -54,7 +54,7 @@ class WorkerBackend(object):
         try:
             return import_string(self.worker_modspec)
         except:
-            from invenio.ext.logging import register_exception
+            from invenio_ext.logging import register_exception
             # Let's report about broken plugins
             current_app.logger.exception()
 

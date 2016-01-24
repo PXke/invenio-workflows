@@ -40,13 +40,13 @@ from sqlalchemy_utils.types.choice import (
     EnumTypeImpl,
 )
 
-from invenio.base.globals import cfg
-from invenio.base.helpers import unicodifier
+from invenio_base.globals import cfg
+from invenio_base.helpers import unicodifier
 
-from invenio.ext.sqlalchemy import db
-from invenio.ext.sqlalchemy.utils import session_manager
+from invenio_ext.sqlalchemy import db
+from invenio_ext.sqlalchemy.utils import session_manager
 
-from invenio.utils.deprecation import deprecated, RemovedInInvenio23Warning
+from invenio_utils.deprecation import deprecated, RemovedInInvenio23Warning
 
 from workflow.engine_db import WorkflowStatus, EnumLabel
 from workflow.utils import staticproperty
