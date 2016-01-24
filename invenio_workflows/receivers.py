@@ -22,7 +22,6 @@
 from flask import current_app
 
 from invenio_base.globals import cfg
-from invenio_records.tasks.index import get_record_index
 
 from sqlalchemy.event import listen
 
@@ -50,7 +49,7 @@ def delete_from_index(mapper, connection, target):
         )
 
 
-@workflow_object_saved.connect
+# @workflow_object_saved.connect
 def index_holdingpen_record(sender, **kwargs):
     """Index a Holding Pen record."""
     from invenio_ext.es import es
@@ -59,6 +58,7 @@ def index_holdingpen_record(sender, **kwargs):
     from invenio_records.recordext.functions.get_record_collections import (
         get_record_collections,
     )
+    from invenio_records.tasks.index import get_record_index
 
     from .registry import workflows
     from .models import ObjectStatus
@@ -121,4 +121,4 @@ def index_holdingpen_record(sender, **kwargs):
             id=sender.id
         )
 
-listen(DbWorkflowObject, "after_delete", delete_from_index)
+# listen(DbWorkflowObject, "after_delete", delete_from_index)
