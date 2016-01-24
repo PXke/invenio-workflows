@@ -213,7 +213,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
         """Return True if workflow is fully completed."""
         objects_in_db = DbWorkflowObject.query.filter(
             DbWorkflowObject.id_workflow == self.uuid
-        ).filter(DbWorkflowObject.version.in_([
+        ).filter(DbWorkflowObject.status.in_([
             DbWorkflowObject.known_statuses.INITIAL,
             DbWorkflowObject.known_statuses.COMPLETED,
         ])).count()

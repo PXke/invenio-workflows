@@ -26,7 +26,7 @@ WORKFLOWS_HOLDING_PEN_DEFAULT_OUTPUT_FORMAT = "hd"
 """The default timeout when formatting Holding Pen detailed pages."""
 
 WORKFLOWS_SNAPSHOTS_ENABLED = False
-"""Enable to create an copy of each BibWorkflowObject with initial data."""
+"""Enable to create an copy of each workflow object with initial data."""
 
 WORKFLOWS_DATA_PROCESSORS = {
     'json': 'json.load',

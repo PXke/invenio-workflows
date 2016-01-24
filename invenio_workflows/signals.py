@@ -25,7 +25,7 @@ _signals = Namespace()
 workflow_halted = _signals.signal('workflow_halted')
 """
 This signal is sent when a workflow engine's halt function is called.
-Sender is the BibWorkflowObject that was running before the workflow
+Sender is the workflow object that was running before the workflow
 was halted.
 """
 
@@ -44,7 +44,7 @@ Sender is the workflow engine object running the workflow.
 workflow_error = _signals.signal('workflow_error')
 """
 This signal is sent when a workflow object gets an error.
-Sender is the BibWorkflowObject that was running before the workflow
+Sender is the workflow object that was running before the workflow
 got the error.
 """
 

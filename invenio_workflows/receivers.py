@@ -26,7 +26,7 @@ from invenio_records.tasks.index import get_record_index
 
 from sqlalchemy.event import listen
 
-from .models import BibWorkflowObject
+from .models import DbWorkflowObject
 from .signals import workflow_object_saved
 
 
@@ -61,14 +61,14 @@ def index_holdingpen_record(sender, **kwargs):
     )
 
     from .registry import workflows
-    from .models import ObjectVersion
+    from .models import ObjectStatus
 
     if not sender.workflow:
         # No workflow registered to object yet. Skip indexing
         return
 
-    if sender.version == ObjectVersion.INITIAL:
-        # Ignore initial versions
+    if sender.status == DbWorkflowObject.known_statuses.INITIAL:
+        # Ignore initial status
         return
 
     workflow = workflows.get(sender.workflow.name)
@@ -84,7 +84,6 @@ def index_holdingpen_record(sender, **kwargs):
         sender.extra_data = sender.get_extra_data()
 
     record = Record({})
-    record["version"] = ObjectVersion.name_from_version(sender.version)
     record["type"] = sender.data_type
     record["status"] = sender.status
     record["created"] = sender.created.isoformat()
@@ -122,4 +121,4 @@ def index_holdingpen_record(sender, **kwargs):
             id=sender.id
         )
 
-listen(BibWorkflowObject, "after_delete", delete_from_index)
+listen(DbWorkflowObject, "after_delete", delete_from_index)

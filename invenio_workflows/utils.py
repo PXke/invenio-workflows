@@ -334,13 +334,11 @@ def get_rendered_task_results(obj):
 
 def get_rendered_row(obj_id):
     """Return a single formatted row."""
-    from .models import BibWorkflowObject
-
-    bwo = BibWorkflowObject.query.get(obj_id)
+    bwo = DbWorkflowObject.query.get(obj_id)
     bwo.data = bwo.get_data()
     bwo.extra_data = bwo.get_extra_data()
     if not bwo:
-        current_app.logger.error("BibWorkflowObject not found for {0}".format(obj_id))
+        current_app.logger.error("workflow object not found for {0}".format(obj_id))
         return ""
     preformatted = get_formatted_holdingpen_object(bwo)
     return render_template(
