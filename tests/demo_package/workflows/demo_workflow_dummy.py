@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2014, 2015 CERN.
+# Copyright (C) 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -19,8 +19,7 @@
 
 """Implement a workflow for testing."""
 
-# FIXME: This belongs to workflow
-from workflow.tasks.sample_tasks import halt_whatever
+from ..tasks import halt_whatever
 
 
 class demo_workflow_dummy(object):

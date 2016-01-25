@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -20,8 +20,8 @@
 """Showcase a sample workflow definition."""
 
 from invenio_workflows.definitions import WorkflowBase
-from invenio_workflows.tasks.logic_tasks import execute_if
-from invenio_workflows.tasks.sample_tasks import add_data, approve_record
+
+from ..tasks import execute_if, add_data, approve_record
 
 
 class demo_workflow_approve(WorkflowBase):

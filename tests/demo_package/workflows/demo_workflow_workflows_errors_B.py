@@ -20,7 +20,8 @@
 
 from invenio_workflows.tasks.workflows_tasks import (start_async_workflow, workflows_reviews,
                                                      wait_for_workflows_to_complete)
-from workflow.tasks.logic_tasks import simple_for, end_for
+
+from ..tasks import simple_for, end_for
 
 
 class demo_workflow_workflows_errors_B(object):

@@ -20,15 +20,19 @@
 
 """Implements a workflow for testing."""
 
-from workflow.tasks.logic_tasks import (end_for,
-                                        foreach,
-                                        simple_for,
-                                        workflow_else,
-                                        workflow_if,
-                                        compare_logic,)
-from workflow.tasks.sample_tasks import add_data
-
 from invenio_workflows.tasks.workflows_tasks import interrupt_workflow
+
+from ..tasks import (
+    end_for,
+    foreach,
+    simple_for,
+    workflow_else,
+    workflow_if,
+    compare_logic,
+    add_data,
+    set_obj_extra_data_key,
+    get_data,
+)
 
 
 class demo_workflow_logic(object):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2013, 2014, 2015 CERN.
+# Copyright (C) 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -295,7 +295,7 @@ distances from it.
 
         # There should only be 2 objects (initial, final)
         self.assertEqual(1, len(all_objects))
-        self.assertEqual(ObjectVersion.COMPLETED, all_objects[0].version)
+        self.assertEqual(ObjectStatus.COMPLETED, all_objects[0].version)
         self.assertEqual(final_data, all_objects[0].get_data())
 
     def test_workflow_complex_run(self):
@@ -318,10 +318,9 @@ distances from it.
         self.assertEqual(1, objects[0].get_data())
         self.assertEqual(38, objects[1].get_data())
 
-    def test_workflow_marcxml(self):
+    def test_workflow_approve(self):
         """Test running a record ingestion workflow with a action step."""
-        initial_data = self.recxml
-        workflow = start(workflow_name="marcxml_workflow", data=[initial_data])
+        workflow = start(workflow_name="demo_workflow_approve", data=[1])
 
         # Get objects of the workflow we just ran
         objects = DbWorkflowObject.query.filter(
@@ -330,7 +329,7 @@ distances from it.
 
         # Let's check that we found anything. There should only be one object
         self.assertEqual(len(objects), 1)
-        self.assertEqual(ObjectVersion.HALTED, objects[0].version)
+        self.assertEqual(ObjectStatus.HALTED, objects[0].version)
         self.assertEqual(WorkflowStatus.HALTED, workflow.status)
         self.assertEqual(objects[0].get_action(), "approval")
 
@@ -342,10 +341,10 @@ distances from it.
         from workflow.engine_db import WorkflowStatus
 
         current = DbWorkflowObject()
-        current.set_data(self.recxml)
+        current.set_data(1)
         current.save()
 
-        workflow = start(workflow_name="marcxml_workflow",
+        workflow = start(workflow_name="demo_workflow_approve",
                          data=[current])
 
         self.assertEqual(WorkflowStatus.HALTED, workflow.status)

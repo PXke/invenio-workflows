@@ -17,11 +17,13 @@
 # along with Invenio; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-""" Implements a workflow for testing."""
+"""Implements a workflow for testing."""
 
-# FIXME: This belongs to workflow
-from workflow.tasks.sample_tasks import (add_data, halt_if_data_less_than,
-                                         reduce_data_by_one)
+from ..tasks import (
+    add_data,
+    halt_if_data_less_than,
+    reduce_data_by_one
+)
 
 
 class demo_workflow(object):

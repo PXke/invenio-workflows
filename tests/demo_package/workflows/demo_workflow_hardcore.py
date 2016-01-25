@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+#
 # This file is part of Invenio.
-# Copyright (C) 2014 CERN.
+# Copyright (C) 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -18,7 +19,7 @@
 
 """ Implements a workflow for testing."""
 
-from workflow.tasks.sample_tasks import task_reduce_and_halt, sleep_task
+from ..tasks import task_reduce_and_halt, sleep_task
 
 
 class demo_workflow_hardcore(object):
