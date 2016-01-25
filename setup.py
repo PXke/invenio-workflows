@@ -37,11 +37,11 @@ requirements = [
     'Flask>=0.10.1',
     'six>=1.7.2',
     'workflow>=1.2.0,<2.0.0',
-    'invenio-base>=0.3.0',
-    'invenio-celery>=0.1.0',
-    'invenio-ext>=0.1.0',
-    'invenio-upgrader>=0.1.0',
-    'invenio-utils>=0.1.0',
+    'invenio-base>=0.3.1,<1.0.0',
+    'invenio-celery>=0.1.1,<1.0.0',
+    'invenio-ext>=0.3.1,<1.0.0',
+    'invenio-upgrader>=0.2.0,<1.0.0',
+    'invenio-utils>=0.2.0,<1.0.0',
     'SQLAlchemy-Utils>=0.30.17',
 ]
 
