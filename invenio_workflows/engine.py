@@ -212,12 +212,12 @@ class BibWorkflowEngine(DbWorkflowEngine):
     def has_completed(self):
         """Return True if workflow is fully completed."""
         objects_in_db = DbWorkflowObject.query.filter(
-            DbWorkflowObject.id_workflow == self.uuid
+            DbWorkflowObject.id_workflow == self.uuid,
+            DbWorkflowObject.id_parent == None,
         ).filter(DbWorkflowObject.status.in_([
-            DbWorkflowObject.known_statuses.INITIAL,
-            DbWorkflowObject.known_statuses.COMPLETED,
+            DbWorkflowObject.known_statuses.COMPLETED
         ])).count()
-        return objects_in_db == len(self.objects)
+        return objects_in_db == len(list(self.objects))
 
     def set_workflow_by_name(self, workflow_name):
         """Configure the workflow to run by the name of this one.
