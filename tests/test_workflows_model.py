@@ -31,9 +31,7 @@ def test_db(app):
         db.create_all()
 
         assert 'workflows_object' in db.metadata.tables
-        assert 'workflows_objectlogging' in db.metadata.tables
         assert 'workflows_workflow' in db.metadata.tables
-        assert 'workflows_workflowlogging' in db.metadata.tables
 
     from invenio_workflows.models import DbWorkflowObject, Workflow
     from uuid import uuid1

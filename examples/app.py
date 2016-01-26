@@ -41,6 +41,7 @@ from flask_cli import FlaskCLI
 from invenio_db import InvenioDB
 
 from invenio_workflows import InvenioWorkflows
+
 import os
 
 # Create Flask application
@@ -52,7 +53,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'
 )
 InvenioWorkflows(app)
-
+import ipdb; ipdb.set_trace()
 
 with app.app_context():
     from invenio_db import db
