@@ -29,7 +29,6 @@ from test_workflows import WorkflowTasksTestCase
 
 
 class WorkflowDelayedTest(WorkflowTasksTestCase):
-
     """Class to test the delayed workflows."""
 
     def setUp(self):
@@ -78,7 +77,6 @@ class WorkflowDelayedTest(WorkflowTasksTestCase):
         asyncr = continue_oid_delayed(test_objecte.id)
 
         engineb = asyncr.get(uuid_to_workflow)
-
 
         self.assertEqual(WorkflowStatus.COMPLETED, engineb.status)
         self.assertEqual(20, test_objecte.get_data())

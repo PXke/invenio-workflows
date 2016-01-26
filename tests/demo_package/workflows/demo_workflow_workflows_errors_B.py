@@ -18,7 +18,7 @@
 
 """Implements a workflow for testing."""
 
-from invenio_workflows.tasks.workflows_tasks import (start_async_workflow, workflows_reviews,
+from invenio_workflows.workflow_tasks.workflows_tasks import (start_async_workflow, workflows_reviews,
                                                      wait_for_workflows_to_complete)
 
 from ..tasks import simple_for, end_for

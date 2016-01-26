@@ -19,7 +19,7 @@
 
 """Implements a workflow for testing."""
 
-from invenio_workflows.tasks.workflows_tasks import (
+from invenio_workflows.workflow_tasks.workflows_tasks import (
     get_nb_workflow_running,
     log_info,
     num_workflow_running_greater,
