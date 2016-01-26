@@ -20,7 +20,7 @@
 
 """Implements a workflow for testing."""
 
-from invenio_workflows.tasks.workflows_tasks import interrupt_workflow
+from invenio_workflows.workflow_tasks.workflows_tasks import interrupt_workflow
 
 from ..tasks import (
     end_for,
