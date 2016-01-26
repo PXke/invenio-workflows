@@ -26,19 +26,47 @@
 
 from __future__ import absolute_import, print_function
 
+import pkg_resources
+
+
+class _WorkflowState(object):
+    """State of registered workflows."""
+
+    def __init__(self, app, entry_point_group=None, cache=None):
+        """Initialize state."""
+        self.app = app
+        self.workflows = {}
+        if entry_point_group:
+            self.load_entry_point_group(entry_point_group)
+
+    def register_workflow(self, name, workflow):
+        """Register an workflow to be showed in the workflows list."""
+        assert name not in self.workflows
+        self.workflows[name] = workflow
+
+    def load_entry_point_group(self, entry_point_group):
+        """Load workflows from an entry point group."""
+        for ep in pkg_resources.iter_entry_points(group=entry_point_group):
+            self.register_workflow(ep.name, ep.load())
+
 
 class InvenioWorkflows(object):
     """invenio-workflows extension."""
 
-    def __init__(self, app=None):
+    def __init__(self, app=None, **kwargs):
         """Extension initialization."""
         if app:
-            self.init_app(app)
+            self._state = self.init_app(app, **kwargs)
 
-    def init_app(self, app):
+    def init_app(self, app,
+                 entry_point_group='invenio_workflows.workflows',
+                 **kwargs):
         """Flask application initialization."""
         self.init_config(app)
-        app.extensions['invenio-workflows'] = self
+        state = _WorkflowState(
+            app, entry_point_group=entry_point_group, **kwargs
+        )
+        app.extensions['invenio-workflows'] = state
 
     def init_config(self, app):
         """Initialize configuration."""
