@@ -28,9 +28,14 @@
 from __future__ import absolute_import, print_function
 
 from flask import Flask
+from flask_cli import FlaskCLI
 from flask_babelex import Babel
 
-from invenio_workflows import InvenioWorkflows
+from demo_package.workflows.demo_workflow import demo_workflow
+
+from invenio_db import InvenioDB, db
+
+from invenio_workflows import InvenioWorkflows, start
 
 
 def test_version():
@@ -44,6 +49,8 @@ def test_init():
     app = Flask('testapp')
     ext = InvenioWorkflows(app)
     assert 'invenio-workflows' in app.extensions
+    ext.register_workflow('test_workflow', demo_workflow)
+    assert 'test_workflow' in app.extensions['invenio-workflows'].workflows
 
     app = Flask('testapp')
     ext = InvenioWorkflows()
@@ -52,11 +59,11 @@ def test_init():
     assert 'invenio-workflows' in app.extensions
 
 
-def test_view(app):
-    """Test view."""
+def test_api(app):
+    """Test api."""
     Babel(app)
+    FlaskCLI(app)
+    InvenioDB(app)
     InvenioWorkflows(app)
-    with app.test_client() as client:
-        res = client.get("/")
-        assert res.status_code == 200
-        assert 'Welcome to invenio-workflows' in str(res.data)
+    with app.app_context():
+        pass

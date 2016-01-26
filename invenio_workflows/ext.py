@@ -67,6 +67,7 @@ class InvenioWorkflows(object):
             app, entry_point_group=entry_point_group, **kwargs
         )
         app.extensions['invenio-workflows'] = state
+        return state
 
     def init_config(self, app):
         """Initialize configuration."""
@@ -74,3 +75,7 @@ class InvenioWorkflows(object):
         #    "INVENIO_WORKFLOWS_BASE_TEMPLATE",
         #    app.config.get("BASE_TEMPLATE",
         #                   "invenio_workflows/base.html"))
+
+    def __getattr__(self, name):
+        """Proxy to state object."""
+        return getattr(self._state, name, None)
