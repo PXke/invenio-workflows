@@ -52,7 +52,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'
 )
 InvenioWorkflows(app)
-import ipdb; ipdb.set_trace()
 
 with app.app_context():
     from invenio_db import db
