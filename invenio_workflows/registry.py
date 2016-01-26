@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -19,43 +19,12 @@
 
 """Registry for workflow definitions found."""
 
-import inspect
+from flask import current_app
 
-from flask_registry import RegistryError, RegistryProxy
+from werkzeug.local import LocalProxy
 
-from invenio_ext.registry import DictModuleAutoDiscoverySubRegistry
+workflows = LocalProxy(
+    lambda: current_app.extensions['invenio-workflows'].workflows
+)
 
-
-class WorkflowsRegistry(DictModuleAutoDiscoverySubRegistry):
-
-    def keygetter(self, key, orig_value, class_):
-        return class_.__name__ \
-            if hasattr(class_, '__name__') and key is None else key
-
-    def valuegetter(self, class_or_module):
-        if inspect.ismodule(class_or_module):
-            attr_name = class_or_module.__name__.split('.')[-1]
-            if attr_name == '__init__':
-                # Ignore __init__ modules.
-                return None
-
-            if hasattr(class_or_module, attr_name):
-                # key = attr_name if key is None else key
-                return getattr(class_or_module, attr_name)
-            else:
-                all_ = getattr(class_or_module, '__all__', [])
-                if len(all_) == 0:
-                    raise RegistryError(
-                        "Workflow class not found. Class name must match "
-                        "module name or be first element in  __all__. "
-                        "Please check: {0}.{1}".format(class_or_module,
-                                                       attr_name)
-                    )
-                return getattr(class_or_module, all_[0])
-        return class_or_module
-
-
-workflows = RegistryProxy('workflows', WorkflowsRegistry, 'workflows')
-actions = RegistryProxy('workflows.actions', WorkflowsRegistry, 'actions')
-
-__all__ = ('actions', 'workflows')
+__all__ = ('workflows',)
