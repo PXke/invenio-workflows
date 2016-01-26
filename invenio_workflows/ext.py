@@ -71,10 +71,7 @@ class InvenioWorkflows(object):
 
     def init_config(self, app):
         """Initialize configuration."""
-        app.config.setdefault(
-            "WORKFLOWS_SNAPSHOTS_ENABLED",
-            app.config.get("BASE_TEMPLATE",
-                           "invenio_workflows/base.html"))
+        app.config.setdefault("WORKFLOWS_SNAPSHOTS_ENABLED", False)
 
     def __getattr__(self, name):
         """Proxy to state object."""

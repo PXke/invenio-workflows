@@ -96,7 +96,8 @@ def start_delayed(workflow_name, data, **kwargs):
     else:
         if isinstance(data, DbWorkflowObject):
             data = [BibWorkflowObjectIdContainer(data).to_dict()]
-    return WORKER().run_worker(workflow_name, data, **kwargs)
+
+    return run.delay(workflow_name, data, **kwargs)
 
 
 def start_by_wid(wid, **kwargs):
@@ -136,7 +137,7 @@ def start_by_wid_delayed(wid, **kwargs):
 
     :return: AsynchronousResultWrapper
     """
-    return WORKER().restart_worker(wid, **kwargs)
+    return restart.delay(wid, **kwargs)
 
 
 def start_by_oids(workflow_name, oids, **kwargs):
@@ -251,7 +252,7 @@ def continue_oid_delayed(oid, start_point="continue_next", **kwargs):
 
     :return: AsynchronousResultWrapper.
     """
-    return WORKER().continue_worker(oid, start_point, **kwargs)
+    return resume.delay(oid, start_point, **kwargs)
 
 
 def resume_objects_in_workflow(id_workflow, start_point="continue_next",

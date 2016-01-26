@@ -19,13 +19,7 @@
 
 """Various utility functions for use across the workflows module."""
 
-
 from six import text_type
-
-from .registry import actions, workflows
-
-DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
-Workflow = lazy_import("invenio_workflows.models.Workflow")
 
 
 class BibWorkflowObjectIdContainer(object):

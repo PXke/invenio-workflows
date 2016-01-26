@@ -1,6 +1,7 @@
-{#
+# -*- coding: utf-8 -*-
+#
 # This file is part of Invenio.
-# Copyright (C) 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -9,34 +10,21 @@
 #
 # Invenio is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with Invenio; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-#}
-<tr>
-<td class="row-checkbox">
-    <input type="checkbox" value="{{object.id}}">
-</td>
 
-<td class="row-content">
-    <h4>
-    <a href="{{url_for('holdingpen.details', objectid=object.id)}}">
-      {{ title }}
-    </a>
-    <small>on
-    <time datetime="{{object.modified.isoformat()}}" title="{{object.modified.isoformat()}}">{{object.created.strftime("%b %d %H:%m")}}</time></small>
-    </h4>
-    {{ description|safe }}
-</td>
+"""Registry for workflow definitions found."""
 
-<td class="row-additional">
-    {{ additional|safe }}
-</td>
+from flask import current_app
 
-<td class="row-action">
-    {{ action|safe}}
-</td>
-</tr>
+from werkzeug.local import LocalProxy
+
+workflows = LocalProxy(
+    lambda: current_app.extensions['invenio-workflows'].workflows
+)
+
+__all__ = ('workflows',)

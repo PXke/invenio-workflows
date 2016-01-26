@@ -27,12 +27,29 @@
 
 from __future__ import absolute_import, print_function
 
+import pytest
+
 from flask import Flask
 
 
 from demo_package.workflows.demo_workflow import demo_workflow
 
+from invenio_db import db
+
 from invenio_workflows import InvenioWorkflows, start
+
+from workflow.engine_db import WorkflowStatus
+
+
+@pytest.fixture
+def halt_workflow(app):
+    def halt_engine(obj, eng):
+        return eng.halt("Test")
+
+    class HaltTest(object):
+        workflow = [halt_engine]
+
+    return HaltTest
 
 
 def test_version():
@@ -60,3 +77,57 @@ def test_api(app):
     """Test api."""
     with app.app_context():
         pass
+
+
+def test_halt(app, halt_workflow):
+    """Test halt task."""
+    app.extensions['invenio-workflows'].register_workflow(
+        'halttest', halt_workflow
+    )
+
+    assert 'halttest' in app.extensions['invenio-workflows'].workflows
+
+    data = [{'foo': 'bar'}]
+
+    with app.app_context():
+        db.create_all()
+
+    with app.app_context():
+        eng = start('halttest', data)
+        obj = list(eng.objects)[0]
+
+        assert obj.known_statuses.WAITING == obj.status
+        assert WorkflowStatus.HALTED == eng.status
+
+    with app.app_context():
+        db.drop_all()
+
+
+def test_continue_object(app, halt_workflow):
+    """Test continue object task."""
+    from invenio_workflows.models import DbWorkflowObject
+
+    app.extensions['invenio-workflows'].register_workflow(
+        'halttest', halt_workflow
+    )
+
+    data = [{'foo': 'bar'}]
+
+    with app.app_context():
+        db.create_all()
+
+    with app.app_context():
+        eng = start('halttest', data)
+        obj = list(eng.objects)[0]
+
+        assert obj.known_statuses.WAITING == obj.status
+        assert WorkflowStatus.HALTED == eng.status
+
+        obj_id = obj.id
+        obj.continue_workflow(delayed=True)
+
+        obj = DbWorkflowObject.query.get(obj_id)
+        assert obj.known_statuses.COMPLETED == obj.status
+
+    with app.app_context():
+        db.drop_all()
