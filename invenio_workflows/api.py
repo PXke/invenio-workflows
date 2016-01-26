@@ -22,9 +22,10 @@
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
 """API for workflows."""
+from invenio_workflows.tasks import worker_celery
 
 from .models import DbWorkflowObject
-# from .utils import BibWorkflowObjectIdContainer
+from .utils import BibWorkflowObjectIdContainer
 
 
 def start(workflow_name, data, **kwargs):
@@ -92,7 +93,7 @@ def start_delayed(workflow_name, data, **kwargs):
     else:
         if isinstance(data, DbWorkflowObject):
             data = [BibWorkflowObjectIdContainer(data).to_dict()]
-    return WORKER().run_worker(workflow_name, data, **kwargs)
+    return worker_celery().run_worker(workflow_name, data, **kwargs)
 
 
 def start_by_wid(wid, **kwargs):
@@ -132,7 +133,7 @@ def start_by_wid_delayed(wid, **kwargs):
 
     :return: AsynchronousResultWrapper
     """
-    return WORKER().restart_worker(wid, **kwargs)
+    return worker_celery().restart_worker(wid, **kwargs)
 
 
 def start_by_oids(workflow_name, oids, **kwargs):
@@ -245,7 +246,7 @@ def continue_oid_delayed(oid, start_point="continue_next", **kwargs):
 
     :return: AsynchronousResultWrapper.
     """
-    return WORKER().continue_worker(oid, start_point, **kwargs)
+    return worker_celery().continue_worker(oid, start_point, **kwargs)
 
 
 def resume_objects_in_workflow(id_workflow, start_point="continue_next",
