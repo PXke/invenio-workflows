@@ -18,8 +18,6 @@
 
 """Mediator between API and workers responsible for running the workflows."""
 
-from invenio_base.globals import cfg
-
 from workflow.errors import WorkflowObjectStatusError
 
 from .client import run_workflow, continue_execution

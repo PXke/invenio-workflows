@@ -27,6 +27,7 @@
 from __future__ import absolute_import, print_function
 
 from .ext import InvenioWorkflows
+from .api import start
 from .version import __version__
 
-__all__ = ('__version__', 'InvenioWorkflows')
+__all__ = ('__version__', 'InvenioWorkflows', 'start')
