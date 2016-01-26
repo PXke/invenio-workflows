@@ -36,6 +36,8 @@ from invenio_db import db
 
 from invenio_workflows import InvenioWorkflows, start
 
+from workflow.engine_db import WorkflowStatus
+
 
 def test_version():
     """Test version import."""
@@ -85,10 +87,10 @@ def test_halt(app):
     with app.app_context():
         eng = start('halttest', data)
 
-    # obj = list(eng.objects)[0]
+    obj = list(eng.objects)[0]
 
-    # assert obj.known_statuses.WAITING == obj.status
-    # assert WorkflowStatus.HALTED == eng.status
+    assert obj.known_statuses.WAITING == obj.status
+    assert WorkflowStatus.HALTED == eng.status
 
     with app.app_context():
         db.drop_all()

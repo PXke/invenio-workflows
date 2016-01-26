@@ -21,7 +21,6 @@ from __future__ import absolute_import
 from six import reraise
 from celery import shared_task
 
-
 from invenio_workflows.worker_result import AsynchronousResultWrapper
 from invenio_workflows.errors import WorkflowWorkerError
 
@@ -29,6 +28,10 @@ from invenio_workflows.errors import WorkflowWorkerError
 @shared_task
 def celery_run(workflow_name, data, **kwargs):
     """Run the workflow with Celery."""
+    #from flask import current_app
+    #from invenio_workflows import InvenioWorkflows
+    #InvenioWorkflows(current_app)
+
     from .worker_engine import run_worker
     from .utils import BibWorkflowObjectIdContainer
 
