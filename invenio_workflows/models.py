@@ -19,7 +19,7 @@
 """Models for BibWorkflow Objects."""
 
 import base64
-
+import uuid
 import logging
 
 from collections import Iterable, namedtuple
@@ -31,9 +31,7 @@ from six.moves import cPickle
 from sqlalchemy import desc
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy_utils.types.choice import (
-    ChoiceType,
-)
+from sqlalchemy_utils.types import ChoiceType, UUIDType
 
 from invenio_db import db
 
@@ -111,10 +109,9 @@ class Workflow(db.Model):
     Used by DbWorkflowEngine to store the state of the workflow.
     """
 
-    __tablename__ = "bwlWORKFLOW"
+    __tablename__ = "workflows_workflow"
 
-    _uuid = db.Column(db.String(36), primary_key=True, nullable=False,
-                      name="uuid")
+    uuid = db.Column(UUIDType, primary_key=True, nullable=False, default=uuid.uuid4())
     name = db.Column(db.String(255), default="Default workflow",
                      nullable=False)
     created = db.Column(db.DateTime, default=datetime.now, nullable=False)
@@ -127,23 +124,11 @@ class Workflow(db.Model):
     status = db.Column(ChoiceType(WorkflowStatus, impl=db.Integer()),
                        default=WorkflowStatus.NEW, nullable=False)
     objects = db.relationship("DbWorkflowObject",
-                              backref='bwlWORKFLOW',
+                              backref='workflows_workflow',
                               cascade="all, delete-orphan")
-    module_name = db.Column(db.String(64), nullable=False)
-
     child_logs = db.relationship("DbWorkflowEngineLog",
-                                 # backref='bwlWORKFLOW',
+                                 # backref='workflows_workflow',
                                  cascade="all, delete-orphan")
-
-    @hybrid_property
-    def uuid(self):
-        """Get uuid."""
-        return self._uuid
-
-    @uuid.setter
-    def uuid(self, value):
-        """Set uud."""
-        self._uuid = str(value) if value else None
 
     def get_counter(self, object_status):
         return DbWorkflowObject.query.filter(
@@ -217,10 +202,10 @@ class Workflow(db.Model):
 
     def __repr__(self):
         """Represent a workflow object."""
-        return "<Workflow(name: %s, module: %s, cre: %s, mod: %s," \
+        return "<Workflow(name: %s, cre: %s, mod: %s," \
                "id_user: %s, status: %s)>" % \
-               (str(self.name), str(self.module_name), str(self.created),
-                str(self.modified), str(self.id_user), str(self.status))
+               (str(self.name),  str(self.created), str(self.modified),
+                str(self.id_user), str(self.status))
 
     @classmethod
     def get(cls, *criteria, **filters):
@@ -374,7 +359,7 @@ class DbWorkflowObject(db.Model):
         obj.start_workflow("sample_workflow")
     """
 
-    __tablename__ = "bwlOBJECT"
+    __tablename__ = "workflows_object"
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -385,15 +370,15 @@ class DbWorkflowObject(db.Model):
     _extra_data = db.Column(db.LargeBinary, nullable=False,
                             default=_encoded_default_extra_data)
 
-    _id_workflow = db.Column(db.String(36),
-                             db.ForeignKey("bwlWORKFLOW.uuid", ondelete='CASCADE'),
+    _id_workflow = db.Column(UUIDType,
+                             db.ForeignKey("workflows_workflow.uuid", ondelete='CASCADE'),
                              nullable=True, name="id_workflow")
 
     status = db.Column(ChoiceType(ObjectStatus, impl=db.Integer()),
                        default=ObjectStatus.INITIAL, nullable=False,
                        index=True)
 
-    id_parent = db.Column(db.Integer, db.ForeignKey("bwlOBJECT.id", ondelete='CASCADE'),
+    id_parent = db.Column(db.Integer, db.ForeignKey("workflows_object.id", ondelete='CASCADE'),
                           default=None)
 
     child_objects = db.relationship("DbWorkflowObject", remote_side=[id_parent])
@@ -924,10 +909,10 @@ class DbWorkflowObjectLog(db.Model):
     this class as it requires the object id.
     """
 
-    __tablename__ = 'bwlOBJECTLOGGING'
+    __tablename__ = 'workflows_objectlogging'
     id = db.Column(db.Integer, primary_key=True)
     id_object = db.Column(db.Integer,
-                          db.ForeignKey('bwlOBJECT.id', ondelete='CASCADE'),
+                          db.ForeignKey('workflows_object.id', ondelete='CASCADE'),
                           nullable=False)
     log_type = db.Column(db.Integer, default=0, nullable=False)
     created = db.Column(db.DateTime, default=datetime.now)
@@ -991,10 +976,10 @@ class DbWorkflowEngineLog(db.Model):
     this class as it requires the object id.
     """
 
-    __tablename__ = "bwlWORKFLOWLOGGING"
+    __tablename__ = "workflows_workflowlogging"
     id = db.Column(db.Integer, primary_key=True)
-    _id_object = db.Column(db.String(36),
-                           db.ForeignKey('bwlWORKFLOW.uuid'),
+    _id_object = db.Column(UUIDType,
+                           db.ForeignKey('workflows_workflow.uuid'),
                            nullable=False, name="id_object")
     log_type = db.Column(db.Integer, default=0, nullable=False)
     created = db.Column(db.DateTime, default=datetime.now)
