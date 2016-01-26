@@ -41,6 +41,9 @@ def run_worker(wname, data, **kwargs):
 
     :return: BibWorkflowEngine instance
     """
+    if 'stop_on_halt' not in kwargs:
+        kwargs['stop_on_halt'] = False
+
     engine = BibWorkflowEngine.with_name(wname, **kwargs)
     engine.save()
     objects = get_workflow_object_instances(data, engine)
@@ -63,6 +66,9 @@ def restart_worker(wid, **kwargs):
 
     :return: BibWorkflowEngine instance
     """
+    if 'stop_on_halt' not in kwargs:
+        kwargs['stop_on_halt'] = False
+
     engine = BibWorkflowEngine.from_uuid(uuid=wid, **kwargs)
 
     if "data" not in kwargs:
@@ -117,6 +123,9 @@ def continue_worker(oid, restart_point="continue_next", **kwargs):
 
     :return: BibWorkflowEngine instance
     """
+    if 'stop_on_halt' not in kwargs:
+        kwargs['stop_on_halt'] = False
+
     workflow_object = DbWorkflowObject.query.get(oid)
     workflow = Workflow.query.get(workflow_object.id_workflow)
 

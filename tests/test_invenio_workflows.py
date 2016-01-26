@@ -32,6 +32,8 @@ from flask import Flask
 
 from demo_package.workflows.demo_workflow import demo_workflow
 
+from invenio_db import db
+
 from invenio_workflows import InvenioWorkflows, start
 
 
@@ -60,3 +62,33 @@ def test_api(app):
     """Test api."""
     with app.app_context():
         pass
+
+
+def test_halt(app):
+    """Test halt task."""
+
+    def halt_engine(obj, eng):
+        return eng.halt("Test")
+
+    class HaltTest(object):
+        workflow = [halt_engine]
+
+    app.extensions['invenio-workflows'].register_workflow('halttest', HaltTest)
+
+    assert 'halttest' in app.extensions['invenio-workflows'].workflows
+
+    data = [{'foo': 'bar'}]
+
+    with app.app_context():
+        db.create_all()
+
+    with app.app_context():
+        eng = start('halttest', data)
+
+    # obj = list(eng.objects)[0]
+
+    # assert obj.known_statuses.WAITING == obj.status
+    # assert WorkflowStatus.HALTED == eng.status
+
+    with app.app_context():
+        db.drop_all()

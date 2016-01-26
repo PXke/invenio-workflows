@@ -24,7 +24,9 @@ from __future__ import absolute_import
 from copy import deepcopy
 from uuid import uuid1 as new_uuid
 
-from invenio_ext.sqlalchemy import db
+from flask import current_app
+
+from invenio_db import db
 
 from workflow.engine import (
     ActionMapper,
@@ -42,10 +44,8 @@ from workflow.errors import WorkflowDefinitionError
 from workflow.utils import staticproperty
 
 from .errors import WaitProcessing
-from .logger import DbWorkflowLogHandler, get_logger
 from .models import (
     DbWorkflowObject,
-    DbWorkflowEngineLog,
     ObjectStatus,
     Workflow,
     get_default_extra_data,
@@ -95,7 +95,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
         self.__dict__[name] = val
 
     @classmethod
-    def with_name(cls, name, id_user=0, module_name="Unknown", **extra_data):
+    def with_name(cls, name, id_user=0, **extra_data):
         """Instantiate a DbWorkflowEngine given a name or UUID.
 
         :param name: name of workflow to run.
@@ -110,9 +110,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
         db_obj = Workflow(
             name=name,
             id_user=id_user,
-            module_name=module_name,
-            uuid=new_uuid(),
-            # status=WorkflowStatus.NEW,   # XXX Temporary
+            uuid=new_uuid()
         )
         return cls(db_obj, **extra_data)
 
@@ -154,29 +152,17 @@ class BibWorkflowEngine(DbWorkflowEngine):
         """Return the user id."""
         return self.db_obj.id_user
 
-    @property
-    def module_name(self):
-        """Return the module name."""
-        return self.db_obj.module_name
-
-    def wait(self, msg="", action=None, payload=None):
+    def wait(self, msg=""):
         """Halt the workflow (stop also any parent `wfe`).
 
         Halts the currently running workflow by raising WaitProcessing.
 
-        You can provide a message and the name of an action to be taken
-        (from an action in actions registry).
-
         :param msg: message explaining the reason for halting.
         :type msg: str
 
-        :param action: name of valid action in actions registry.
-        :type action: str
-
         :raises: WaitProcessing
         """
-        # FIXME: action is not used anywhere
-        raise WaitProcessing(message=msg, action=action, payload=payload)
+        raise WaitProcessing(message=msg)
 
     def continue_object(self, workflow_object, restart_point='restart_task',
                         task_offset=1, stop_on_halt=False):
@@ -204,9 +190,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
 
     def init_logger(self):
         """Return the appropriate logger instance."""
-        db_handler_obj = DbWorkflowLogHandler(DbWorkflowEngineLog, "uuid")
-        return get_logger(logger_name="workflow.%s" % self.db_obj.uuid,
-                          db_handler_obj=db_handler_obj, obj=self)
+        return current_app.logger
 
     @property
     def has_completed(self):
@@ -241,6 +225,10 @@ class BibWorkflowEngine(DbWorkflowEngine):
         """Return default data type from workflow definition."""
         return getattr(self.workflow_definition, "object_type", "")
 
+    def reset_extra_data(self):
+        """Reset extra data to defaults."""
+        self.db_obj.extra_data = get_default_extra_data()
+
     def __repr__(self):
         """Allow to represent the BibWorkflowEngine."""
         return "<BibWorkflow_engine(%s)>" % (self.name,)
@@ -254,60 +242,12 @@ BibWorkflowEngine
 -------------------------------
 """ % (self.db_obj.__str__(),)
 
-    # Deprecated
-    def get_extra_data(self):
-        """Main method to retrieve data saved to the object."""
-        return self.db_obj.extra_data
-
-    # Deprecated
-    def set_extra_data(self, value):
-        """Main method to update data saved to the object."""
-        self.db_obj.extra_data = value
-
-    def reset_extra_data(self):
-        """Reset extra data to defaults."""
-        self.db_obj.extra_data = get_default_extra_data()
-
-    # Deprecated
-    def extra_data_get(self, key):
-        """Get a key value in extra data."""
-        if key not in self.db_obj.extra_data:
-            raise KeyError("%s not in extra_data" % (key,))
-        return self.db_obj.extra_data[key]
-
-    # Deprecated
-    def extra_data_set(self, key, value):
-        """Add a key value pair in extra_data."""
-        self.db_obj.extra_data[key] = value
-
-    # Deprecated
-    def set_extra_data_params(self, **kwargs):
-        """Add keys/value in extra_data.
-
-        Allows the addition of value in the extra_data dictionary,
-        all the data must be passed as "key=value".
-        """
-        self.db_obj.extra_data.update(kwargs)
-
-    # Deprecated
-    def get_current_object(self):
-        return self.current_object
-
-    # Deprecated
-    def objects_of_statuses(self, statuses):
-        results = []
-        for obj in self.database_objects:
-            if obj.status in statuses:
-                results.append(obj)
-        return results
-
 
 class InvActionMapper(ActionMapper):
 
     @staticmethod
     def before_each_callback(eng, callback_func, obj):
         """Action to take before every WF callback."""
-        eng.extra_data = eng.get_extra_data()
         eng.log.debug("Executing callback %s" % (repr(callback_func),))
 
     @staticmethod
@@ -316,7 +256,7 @@ class InvActionMapper(ActionMapper):
         obj.callback_pos = eng.state.callback_pos
         obj.extra_data["_last_task_name"] = callback_func.func_name
         task_history = get_task_history(callback_func)
-        if "_task_history" not in obj:
+        if "_task_history" not in obj.extra_data:
             obj.extra_data["_task_history"] = [task_history]
         else:
             obj.extra_data["_task_history"].append(task_history)
@@ -336,7 +276,7 @@ class InvProcessingFactory(DbProcessingFactory):
 
     @staticmethod
     def before_object(eng, objects, obj):
-        """Action to take before the proccessing of an object begins."""
+        """Action to take before the processing of an object begins."""
         obj.reset_error_message()
         super(InvProcessingFactory, InvProcessingFactory).before_object(
             eng, objects, obj
@@ -378,13 +318,6 @@ class InvTransitionAction(DbTransitionAction):
                 eng.name, eng.current_taskname or "Unknown", e.message
             )
         else:
-            from invenio_utils.deprecation import RemovedInInvenio23Warning
-            import warnings
-            warnings.warn(
-                "Raising HaltProcessing with e.action to emulate "
-                "WaitProcessing is deprecated. Use eng.wait() instead",
-                RemovedInInvenio23Warning
-            )
             InvTransitionAction.WaitProcessing(obj, eng, callbacks, exc_info)
 
     @staticmethod

@@ -24,17 +24,9 @@ from functools import wraps
 from flask import current_app, jsonify, render_template
 from operator import attrgetter
 
-from invenio_base.wrappers import lazy_import
-from invenio_ext.cache import cache
-
 import msgpack
 
 from six import text_type
-
-from .registry import actions, workflows
-
-DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
-Workflow = lazy_import("invenio_workflows.models.Workflow")
 
 
 class BibWorkflowObjectIdContainer(object):

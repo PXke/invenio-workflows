@@ -27,6 +27,8 @@
 
 from __future__ import absolute_import, print_function
 
+import os
+
 import pytest
 
 from flask import Flask
@@ -42,7 +44,9 @@ def app():
     """Flask application fixture."""
     app = Flask('testapp')
     app.config.update(
-        TESTING=True
+        TESTING=True,
+        SQLALCHEMY_DATABASE_URI=os.environ.get(
+            'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db')
     )
     Babel(app)
     FlaskCLI(app)

@@ -19,12 +19,15 @@
 """Models for BibWorkflow Objects."""
 
 import base64
-import uuid
-import logging
 
 from collections import Iterable, namedtuple
 
 from datetime import datetime
+
+from flask import current_app
+
+import uuid
+
 from six import iteritems, callable
 from six.moves import cPickle
 
@@ -38,7 +41,6 @@ from invenio_db import db
 from workflow.engine_db import WorkflowStatus, EnumLabel
 from workflow.utils import staticproperty
 
-from .logger import get_logger, DbWorkflowLogHandler
 from .signals import workflow_object_saved
 
 
@@ -126,9 +128,6 @@ class Workflow(db.Model):
     objects = db.relationship("DbWorkflowObject",
                               backref='workflows_workflow',
                               cascade="all, delete-orphan")
-    child_logs = db.relationship("DbWorkflowEngineLog",
-                                 # backref='workflows_workflow',
-                                 cascade="all, delete-orphan")
 
     def get_counter(self, object_status):
         return DbWorkflowObject.query.filter(
@@ -394,10 +393,6 @@ class DbWorkflowObject(db.Model):
 
     id_user = db.Column(db.Integer, default=0, nullable=False)
 
-    child_logs = db.relationship("DbWorkflowObjectLog",
-                                 backref='bibworkflowobject',
-                                 cascade="all, delete-orphan")
-
     callback_pos = db.Column(CallbackPosType(), default=[])  # ex-task_counter
 
     workflow = db.relationship(
@@ -414,8 +409,6 @@ class DbWorkflowObject(db.Model):
     def id_workflow(self, value):
         """Set id_workflow."""
         self._id_workflow = str(value) if value else None
-
-    _log = None
 
     @staticproperty
     def known_statuses():  # pylint: disable=no-method-argument
@@ -463,12 +456,7 @@ class DbWorkflowObject(db.Model):
     @property
     def log(self):
         """Access logger object for this instance."""
-        if not self._log:
-            db_handler_obj = DbWorkflowLogHandler(DbWorkflowObjectLog, "id")
-            self._log = get_logger(logger_name="object.%s" % (self.id,),
-                                   db_handler_obj=db_handler_obj,
-                                   loglevel=logging.DEBUG, obj=self)
-        return self._log
+        return current_app.logger
 
     # Deprecated
     def get_data(self):
@@ -506,7 +494,6 @@ class DbWorkflowObject(db.Model):
 
     def get_formatted_data(self, **kwargs):
         """Get the formatted representation for this object."""
-        # XXX: return "" instead of exception?
         from .registry import workflows
         try:
             name = self.get_workflow_name()
@@ -519,9 +506,8 @@ class DbWorkflowObject(db.Model):
             )
         except (KeyError, AttributeError) as err:
             # Somehow the workflow or formatter does not exist
-            from invenio_ext.logging import register_exception
-            register_exception(alert_admin=True)
             formatted_data = "Error formatting record: {0}".format(err)
+            current_app.logger.exception(err)
         return formatted_data
 
     def __repr__(self):
@@ -776,43 +762,17 @@ class DbWorkflowObject(db.Model):
 
     def get_current_task_info(self):
         """Return dictionary of current task function info for this object."""
-
+        from .registry import workflows
         task_pointer = self.get_current_task()
         name = self.get_workflow_name()
         if not name:
             return ""
-        #current_task = get_workflow_definition(name)
-        # for step in task_pointer:
-        #     current_task = current_task[step]
-        #     if callable(current_task):
-        #         return get_func_info(current_task)
+        current_task = workflows[name]
+        for step in task_pointer:
+            current_task = current_task[step]
+            if callable(current_task):
+                return get_func_info(current_task)
 
-    def get_log(self, *criteria, **filters):
-        """Return a list of log entries from DbWorkflowObjectLog.
-
-        You can specify additional filters following the SQLAlchemy syntax.
-
-        Get all the logs for the object:
-
-        .. code-block:: python
-
-            b = DbWorkflowObject.query.get(1)
-            b.get_log()
-
-        Get all the logs for the object labeled as ERROR.
-
-        .. code-block:: python
-
-            b = DbWorkflowObject.query.get(1)
-            b.get_log(DbWorkflowObjectLog.log_type == logging.ERROR)
-
-        :return: list of DbWorkflowObjectLog
-        """
-        criterions = [DbWorkflowObjectLog.id_object == self.id] + list(criteria)
-        res = DbWorkflowObjectLog.query.filter(
-            *criterions
-        ).filter_by(**filters)
-        return res.all()
 
     def copy(self, other):
         """Copy data and metadata except id and id_workflow."""
@@ -900,148 +860,4 @@ class DbWorkflowObject(db.Model):
         return obj
 
 
-class DbWorkflowObjectLog(db.Model):
-
-    """Represents a log entry for DbWorkflowObjects.
-
-    This class represent a record of a log emit by an object
-    into the database. The object must be saved before using
-    this class as it requires the object id.
-    """
-
-    __tablename__ = 'workflows_objectlogging'
-    id = db.Column(db.Integer, primary_key=True)
-    id_object = db.Column(db.Integer,
-                          db.ForeignKey('workflows_object.id', ondelete='CASCADE'),
-                          nullable=False)
-    log_type = db.Column(db.Integer, default=0, nullable=False)
-    created = db.Column(db.DateTime, default=datetime.now)
-    message = db.Column(db.TEXT, default="", nullable=False)
-
-    def __str__(self):
-        """Print a log."""
-        return "%(severity)s: %(created)s - %(message)s" % {
-            "severity": self.log_type,
-            "created": self.created,
-            "message": self.message
-        }
-
-    def __repr__(self):
-        """Represent a log message."""
-        return "DbWorkflowObjectLog(%s)" % (", ".join([
-            "log_type='%s'" % self.log_type,
-            "created='%s'" % self.created,
-            "message='%s'" % self.message,
-            "id_object='%s'" % self.id_object,
-        ]))
-
-    @classmethod
-    def get(cls, *criteria, **filters):
-        """SQLAlchemy wrapper to get DbworkflowLogs.
-
-        A wrapper for the filter and filter_by functions of SQLAlchemy.
-        Define a dict with which columns should be filtered by which values.
-
-        See also SQLAlchemy BaseQuery's filter and filter_by documentation.
-        """
-        return cls.query.filter(*criteria).filter_by(**filters)
-
-    @classmethod
-    def get_most_recent(cls, *criteria, **filters):
-        """Return the most recently created log."""
-        most_recent = cls.get(*criteria, **filters).order_by(
-            desc(DbWorkflowObjectLog.created)).first()
-        if most_recent is None:
-            raise NoResultFound
-        else:
-            return most_recent
-
-    @classmethod
-    def delete(cls, id=None):
-        """Delete an instance in database."""
-        cls.get(DbWorkflowObjectLog.id == id).delete()
-        db.session.commit()
-
-    def save(self):
-        """Save object to persistent storage."""
-        db.session.add(self)
-
-
-class DbWorkflowEngineLog(db.Model):
-
-    """Represents a log entry for DbWorkflowEngine.
-
-    This class represent a record of a log emit by an object
-    into the database. The object must be saved before using
-    this class as it requires the object id.
-    """
-
-    __tablename__ = "workflows_workflowlogging"
-    id = db.Column(db.Integer, primary_key=True)
-    _id_object = db.Column(UUIDType,
-                           db.ForeignKey('workflows_workflow.uuid'),
-                           nullable=False, name="id_object")
-    log_type = db.Column(db.Integer, default=0, nullable=False)
-    created = db.Column(db.DateTime, default=datetime.now)
-    message = db.Column(db.TEXT, default="", nullable=False)
-
-    @hybrid_property
-    def id_object(self):
-        """Get id_object."""
-        return self._id_object
-
-    @id_object.setter
-    def id_object(self, value):
-        """Set id_object."""
-        self._id_object = str(value) if value else None
-
-    def __str__(self):
-        """Print a log."""
-        return "%(severity)s: %(created)s - %(message)s" % {
-            "severity": self.log_type,
-            "created": self.created,
-            "message": self.message
-        }
-
-    def __repr__(self):
-        """Represent a log message."""
-        return "DbWorkflowEngineLog(%s)" % (", ".join([
-            "log_type='%s'" % self.log_type,
-            "created='%s'" % self.created,
-            "message='%s'" % self.message,
-            "id_object='%s'" % self.id_object
-        ]))
-
-    @classmethod
-    def get(cls, *criteria, **filters):
-        """Sqlalchemy wrapper to get DbWorkflowEngineLog.
-
-        A wrapper for the filter and filter_by functions of sqlalchemy.
-        Define a dict with which columns should be filtered by which values.
-
-        look up also sqalchemy BaseQuery's filter and filter_by documentation
-        """
-        return cls.query.filter(*criteria).filter_by(**filters)
-
-    @classmethod
-    def get_most_recent(cls, *criteria, **filters):
-        """Return the most recently created log."""
-        most_recent = cls.get(*criteria, **filters).order_by(
-            desc(DbWorkflowEngineLog.created)).first()
-        if most_recent is None:
-            raise NoResultFound
-        else:
-            return most_recent
-
-    @classmethod
-    def delete(cls, uuid=None):
-        """Delete an instance in database."""
-        cls.get(DbWorkflowEngineLog.id == uuid).delete()
-        db.session.commit()
-
-    def save(self):
-        """Save object to persistent storage."""
-        db.session.add(self)
-
-__all__ = ('Workflow', 'DbWorkflowObject',
-           'DbWorkflowObjectLog', 'DbWorkflowEngineLog')
+__all__ = ('Workflow', 'DbWorkflowObject')

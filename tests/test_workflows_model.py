@@ -27,8 +27,6 @@ from invenio_db import db
 
 
 def test_db(app):
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-        'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db')
     with app.app_context():
         db.create_all()
 
