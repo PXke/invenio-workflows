@@ -21,54 +21,57 @@
 
 from __future__ import absolute_import
 
-from invenio_ext.sqlalchemy import db
+import os
 
-from invenio_testing import InvenioTestCase
+from invenio_db import db
 
 
-class TestWorkflowModels(InvenioTestCase):
+def test_db(app):
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+        'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db')
+    with app.app_context():
+        db.create_all()
 
-    """Test meant for testing the models available."""
+        assert 'workflows_object' in db.metadata.tables
+        assert 'workflows_objectlogging' in db.metadata.tables
+        assert 'workflows_workflow' in db.metadata.tables
+        assert 'workflows_workflowlogging' in db.metadata.tables
 
-    def setUp(self):
-        """Setup tests."""
-        from invenio_workflows.models import DbWorkflowObject, Workflow
-        from uuid import uuid1 as new_uuid
-
-        self.workflow = Workflow(name='demo_workflow', uuid=new_uuid(),
-                                 id_user=0, module_name="Unknown")
-        self.bibworkflowobject = DbWorkflowObject(workflow=self.workflow)
-
-        self.create_objects([self.workflow, self.bibworkflowobject])
-
-    def tearDown(self):
-        """Clean up tests."""
-        self.delete_objects([self.workflow, self.bibworkflowobject])
-
-    def test_deleting_workflow(self):
-        """Test deleting workflow."""
-        from invenio_workflows.models import DbWorkflowObject, Workflow
-        bwo_id = self.bibworkflowobject.id
-
+    from invenio_workflows.models import DbWorkflowObject, Workflow
+    from uuid import uuid1
+    with app.app_context():
+        workflow = Workflow(name='demo_workflow', uuid=uuid1(),
+                            id_user=0)
+        workflow.save()
+        bibworkflowobject = DbWorkflowObject(workflow=workflow)
+        bibworkflowobject.save()
+        db.session.commit()
+        bwo_id = bibworkflowobject.id
         # delete workflow
-        Workflow.delete(self.workflow.uuid)
+        Workflow.delete(workflow.uuid)
 
         # assert bibworkflowobject is deleted
-        self.assertFalse(
+        assert not (
             db.session.query(
                 DbWorkflowObject.query.filter(
                     DbWorkflowObject.id == bwo_id).exists()).scalar())
 
-    def test_deleting_bibworkflowobject(self):
-        """Test deleting workflowobject."""
-        from invenio_workflows.models import Workflow
-        w_uuid = self.workflow.uuid
-
+        from invenio_workflows.models import DbWorkflowObject, Workflow
+        from uuid import uuid1
+        workflow = Workflow(name='demo_workflow', uuid=uuid1(),
+                            id_user=0)
+        workflow.save()
+        w_uuid = workflow.uuid
+        bibworkflowobject = DbWorkflowObject(workflow=workflow)
+        bibworkflowobject.save()
+        db.session.commit()
         # delete bibworkflowobject
-        self.bibworkflowobject.delete(self.bibworkflowobject.id)
-
+        bibworkflowobject.delete(bibworkflowobject.id)
+        db.session.commit()
         # assert workflow is not deleted
-        self.assertTrue(
+        assert (
             db.session.query(
                 Workflow.query.filter(
                     Workflow.uuid == w_uuid).exists()).scalar())
+    with app.app_context():
+        db.drop_all()
