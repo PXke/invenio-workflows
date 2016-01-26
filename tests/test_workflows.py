@@ -22,17 +22,14 @@
 from __future__ import absolute_import
 
 import logging
-
 import random
-
 import time
+from functools import partial
 
 from flask_registry import ImportPathRegistry
-from functools import partial
 
 from workflow.engine_db import WorkflowStatus
 from workflow.errors import WorkflowError, WorkflowObjectStatusError
-
 from invenio_testing import InvenioTestCase
 from invenio_base.wrappers import lazy_import
 
@@ -40,7 +37,6 @@ ObjectStatus = lazy_import("invenio_workflows.models.ObjectStatus")
 DbWorkflowObject = lazy_import("invenio_workflows.models.DbWorkflowObject")
 Workflow = lazy_import("invenio_workflows.models.Workflow")
 DbWorkflowObjectLog = lazy_import("invenio_workflows.models.DbWorkflowObjectLog")
-
 
 TEST_PACKAGES = [
     'invenio_workflows',
@@ -54,7 +50,6 @@ continue_oid = lazy_import("invenio_workflows.api.continue_oid")
 
 
 class WorkflowTasksTestCase(InvenioTestCase):
-
     """ Workflow class for testing."""
 
     def create_registries(self):
@@ -65,11 +60,11 @@ class WorkflowTasksTestCase(InvenioTestCase):
         self.app.extensions['registry']['workflows'] = \
             WorkflowsRegistry(
                 'workflows', app=self.app, registry_namespace='workflows.tests'
-        )
+            )
         self.app.extensions['registry']['workflows.actions'] = \
             WorkflowsRegistry(
                 'actions', app=self.app, registry_namespace='workflows.tests'
-        )
+            )
 
     def cleanup_registries(self):
         """Clean registries for testing."""
@@ -79,7 +74,6 @@ class WorkflowTasksTestCase(InvenioTestCase):
 
 
 class WorkflowTasksTestAPI(WorkflowTasksTestCase):
-
     """ Test basic workflow API."""
 
     def setUp(self):
@@ -335,8 +329,7 @@ distances from it.
 
     def test_workflow_for_halted_object(self):
         """Test workflow with continuing a halted object."""
-        from invenio_workflows.models import (DbWorkflowObject,
-                                              ObjectStatus)
+        from invenio_workflows.models import (DbWorkflowObject)
         from invenio_workflows.api import start, continue_oid
         from workflow.engine_db import WorkflowStatus
 
@@ -525,7 +518,6 @@ distances from it.
 
 
 class TestWorkflowTasks(WorkflowTasksTestCase):
-
     """Test meant for testing the the generic tasks available."""
 
     def setUp(self):
