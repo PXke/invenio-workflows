@@ -23,16 +23,16 @@ from invenio_base.helpers import with_app_context
 from invenio_celery import celery
 from invenio_ext.sqlalchemy.utils import session_manager
 
-from ..worker_result import AsynchronousResultWrapper
-from ..errors import WorkflowWorkerError
+from invenio_workflows.worker_result import AsynchronousResultWrapper
+from invenio_workflows.errors import WorkflowWorkerError
 
 
 @celery.task(name='invenio_workflows.workers.worker_celery.run_worker')
 @with_app_context()
 def celery_run(workflow_name, data, **kwargs):
     """Run the workflow with Celery."""
-    from ..worker_engine import run_worker
-    from ..utils import BibWorkflowObjectIdContainer
+    from .worker_engine import run_worker
+    from .utils import BibWorkflowObjectIdContainer
 
     if isinstance(data, list):
         # For each data item check if dict and then
@@ -53,7 +53,7 @@ def celery_run(workflow_name, data, **kwargs):
 @with_app_context()
 def celery_restart(wid, **kwargs):
     """Restart the workflow with Celery."""
-    from ..worker_engine import restart_worker
+    from .worker_engine import restart_worker
     return restart_worker(wid, **kwargs).uuid
 
 
@@ -61,7 +61,7 @@ def celery_restart(wid, **kwargs):
 @with_app_context()
 def celery_continue(oid, restart_point, **kwargs):
     """Restart the workflow with Celery."""
-    from ..worker_engine import continue_worker
+    from .worker_engine import continue_worker
 
     # We need to return the uuid because of AsynchronousResultWrapper
     return continue_worker(oid, restart_point, **kwargs).uuid

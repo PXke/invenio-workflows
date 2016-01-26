@@ -19,7 +19,7 @@
 
 from __future__ import absolute_import
 
-from ..workers.worker_celery import (celery_continue,
+from invenio_workflows.worker_celery import (celery_continue,
                                      celery_run,
                                      celery_restart)
 

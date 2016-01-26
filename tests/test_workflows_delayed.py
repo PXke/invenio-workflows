@@ -102,7 +102,7 @@ class WorkflowDelayedTest(WorkflowTasksTestCase):
 
     def test_dirty_worker(self):
         """Deep test of celery worker."""
-        from invenio_workflows.workers.worker_celery import (
+        from invenio_workflows.worker_celery import (
             celery_run, celery_restart, celery_continue
         )
         from invenio_workflows.utils import \
