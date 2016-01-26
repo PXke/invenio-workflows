@@ -22,9 +22,6 @@ import base64
 
 import logging
 
-import os
-
-import tempfile
 from collections import Iterable, namedtuple
 
 from datetime import datetime
@@ -32,28 +29,19 @@ from six import iteritems, callable
 from six.moves import cPickle
 
 from sqlalchemy import desc
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy_utils.types.choice import (
     ChoiceType,
-    ChoiceTypeImpl,
-    Enum,
-    EnumTypeImpl,
 )
 
-from invenio_base.globals import cfg
-from invenio_base.helpers import unicodifier
-
-from invenio_ext.sqlalchemy import db
-from invenio_ext.sqlalchemy.utils import session_manager
-
-from invenio_utils.deprecation import deprecated, RemovedInInvenio23Warning
+from invenio_db import db
 
 from workflow.engine_db import WorkflowStatus, EnumLabel
 from workflow.utils import staticproperty
 
 from .logger import get_logger, DbWorkflowLogHandler
 from .signals import workflow_object_saved
-from .utils import get_func_info, get_workflow_definition
 
 
 class ObjectStatus(EnumLabel):
@@ -75,13 +63,6 @@ class ObjectStatus(EnumLabel):
             4: "Waiting",
             5: "Error",
         }
-
-    @staticproperty
-    @deprecated("Please use ObjectStatus.COMPLETED "
-                "instead of ObjectStatus.FINAL",
-                RemovedInInvenio23Warning)
-    def FINAL():  # pylint: disable=no-method-argument
-        return ObjectStatus.COMPLETED
 
 
 class CallbackPosType(db.PickleType):
@@ -154,7 +135,7 @@ class Workflow(db.Model):
                                  # backref='bwlWORKFLOW',
                                  cascade="all, delete-orphan")
 
-    @db.hybrid_property
+    @hybrid_property
     def uuid(self):
         """Get uuid."""
         return self._uuid
@@ -170,7 +151,7 @@ class Workflow(db.Model):
                 DbWorkflowObject.status == object_status
             ).count()
 
-    @db.hybrid_property
+    @hybrid_property
     def counter_initial(self):
         return self.get_counter(ObjectStatus.INITIAL)
 
@@ -179,7 +160,7 @@ class Workflow(db.Model):
     def counter_initial(self, value):
         pass
 
-    @db.hybrid_property
+    @hybrid_property
     def counter_halted(self):
         return self.get_counter(ObjectStatus.HALTED)
 
@@ -188,7 +169,7 @@ class Workflow(db.Model):
     def counter_halted(self, value):
         pass
 
-    @db.hybrid_property
+    @hybrid_property
     def counter_error(self):
         return self.get_counter(ObjectStatus.ERROR)
 
@@ -197,7 +178,7 @@ class Workflow(db.Model):
     def counter_error(self, value):
         pass
 
-    @db.hybrid_property
+    @hybrid_property
     def counter_finished(self):
         return self.get_counter(ObjectStatus.COMPLETED)
 
@@ -332,13 +313,11 @@ class Workflow(db.Model):
         # )
 
     @classmethod
-    @session_manager
     def delete(cls, uuid=None):
         """Delete a workflow."""
         uuid = uuid or cls.uuid
         db.session.delete(cls.get(Workflow.uuid == uuid).first())
 
-    @session_manager
     def save(self, status=None):
         """Save object to persistent storage."""
         self.modified = datetime.now()
@@ -441,7 +420,7 @@ class DbWorkflowObject(db.Model):
         post_update=True,
     )
 
-    @db.hybrid_property
+    @hybrid_property
     def id_workflow(self):  # pylint: disable=method-hidden
         """Get id_workflow."""
         return self._id_workflow
@@ -458,7 +437,7 @@ class DbWorkflowObject(db.Model):
         return ObjectStatus
 
     # Deprecated
-    @db.hybrid_property
+    @hybrid_property
     def version(self):
         return self.status
 
@@ -704,7 +683,7 @@ class DbWorkflowObject(db.Model):
     def get_action_message(self):
         """Retrieve the currently assigned widget, if any."""
         try:
-            return unicodifier(self.extra_data["_message"])
+            return self.extra_data["_message"]
         except KeyError:
             # No widget
             return ""
@@ -817,28 +796,11 @@ class DbWorkflowObject(db.Model):
         name = self.get_workflow_name()
         if not name:
             return ""
-        current_task = get_workflow_definition(name)
-        for step in task_pointer:
-            current_task = current_task[step]
-            if callable(current_task):
-                return get_func_info(current_task)
-
-    def save_to_file(self, directory=None,
-                     prefix="workflow_object_data_", suffix=".obj"):
-        """Save the contents of self.data['data'] to file.  FIXME
-
-        Returns path to saved file.
-
-        Warning: Currently assumes non-binary content.
-        """
-        if directory is None:
-            directory = cfg['CFG_TMPSHAREDDIR']
-        tmp_fd, filename = tempfile.mkstemp(dir=directory,
-                                            prefix=prefix,
-                                            suffix=suffix)
-        os.write(tmp_fd, self.get_data())
-        os.close(tmp_fd)
-        return filename
+        #current_task = get_workflow_definition(name)
+        # for step in task_pointer:
+        #     current_task = current_task[step]
+        #     if callable(current_task):
+        #         return get_func_info(current_task)
 
     def get_log(self, *criteria, **filters):
         """Return a list of log entries from DbWorkflowObjectLog.
@@ -876,7 +838,6 @@ class DbWorkflowObject(db.Model):
         setattr(self, 'extra_data', other.extra_data)
         self.save()
 
-    @session_manager
     def save(self, status=None, callback_pos=None, id_workflow=None):
         """Save object to persistent storage."""
         if callback_pos is not None:
@@ -921,7 +882,6 @@ class DbWorkflowObject(db.Model):
         return cls.query.filter(*criteria).filter_by(**filters)
 
     @classmethod
-    @session_manager
     def delete(cls, oid):
         """Delete a DbWorkflowObject."""
         if isinstance(oid, DbWorkflowObject):
@@ -931,7 +891,6 @@ class DbWorkflowObject(db.Model):
                 DbWorkflowObject.get(DbWorkflowObject.id == oid).first())
 
     @classmethod
-    @session_manager
     def create_object(cls, **kwargs):
         """Create a new Workflow Object with given content."""
         obj = DbWorkflowObject(**kwargs)
@@ -939,7 +898,6 @@ class DbWorkflowObject(db.Model):
         return obj
 
     @classmethod
-    @session_manager
     def create_object_revision(cls, old_obj, status, **kwargs):
         """Create a Workflow Object copy with customized values."""
         # Create new object and copy it
@@ -1019,7 +977,6 @@ class DbWorkflowObjectLog(db.Model):
         cls.get(DbWorkflowObjectLog.id == id).delete()
         db.session.commit()
 
-    @session_manager
     def save(self):
         """Save object to persistent storage."""
         db.session.add(self)
@@ -1043,7 +1000,7 @@ class DbWorkflowEngineLog(db.Model):
     created = db.Column(db.DateTime, default=datetime.now)
     message = db.Column(db.TEXT, default="", nullable=False)
 
-    @db.hybrid_property
+    @hybrid_property
     def id_object(self):
         """Get id_object."""
         return self._id_object
@@ -1097,7 +1054,6 @@ class DbWorkflowEngineLog(db.Model):
         cls.get(DbWorkflowEngineLog.id == uuid).delete()
         db.session.commit()
 
-    @session_manager
     def save(self):
         """Save object to persistent storage."""
         db.session.add(self)

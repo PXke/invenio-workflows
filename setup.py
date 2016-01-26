@@ -48,6 +48,15 @@ extras_require = {
     'docs': [
         'Sphinx>=1.3',
     ],
+    'postgresql': [
+        'invenio-db[postgresql]>=1.0.0a6',
+    ],
+    'mysql': [
+        'invenio-db[mysql]>=1.0.0a6',
+    ],
+    'sqlite': [
+        'invenio-db>=1.0.0a6',
+    ],
     'tests': tests_require,
 }
 
@@ -60,6 +69,7 @@ setup_requires = [
 ]
 
 install_requires = [
+    'Flask-CLI>=0.2.1',
     'Flask-BabelEx>=0.9.2',
 ]
 
@@ -134,7 +144,9 @@ setup(
         # 'invenio_base.api_blueprints': [],
         # 'invenio_base.blueprints': [],
         # 'invenio_celery.tasks': [],
-        # 'invenio_db.models': [],
+        'invenio_db.models': [
+            'invenio_workflows = invenio_workflows.models',
+        ],
         # 'invenio_pidstore.minters': [],
         # 'invenio_records.jsonresolver': [],
     },

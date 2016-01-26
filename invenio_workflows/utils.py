@@ -19,16 +19,11 @@
 
 """Various utility functions for use across the workflows module."""
 
-import msgpack
-
 from functools import wraps
 
 from flask import current_app, jsonify, render_template
 from operator import attrgetter
 
-from sqlalchemy import or_
-
-from invenio_base.helpers import unicodifier
 from invenio_base.wrappers import lazy_import
 from invenio_ext.cache import cache
 
@@ -411,7 +406,7 @@ def get_func_info(func):
             if not callable(arg.cell_contents):
                 parameters.append((varnames[index],
                                    text_type(arg.cell_contents)))
-    return unicodifier({
+    return ({
         "nicename": nicename,
         "doc": doc,
         "parameters": parameters,
