@@ -28,7 +28,13 @@
 from __future__ import absolute_import, print_function
 
 import pytest
+
 from flask import Flask
+from flask_cli import FlaskCLI
+from flask_babelex import Babel
+
+from invenio_db import InvenioDB
+from invenio_workflows import InvenioWorkflows
 
 
 @pytest.fixture()
@@ -38,4 +44,8 @@ def app():
     app.config.update(
         TESTING=True
     )
+    Babel(app)
+    FlaskCLI(app)
+    InvenioDB(app)
+    InvenioWorkflows(app)
     return app

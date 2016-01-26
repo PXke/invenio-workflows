@@ -18,9 +18,10 @@
 
 """Mediator between API and workers responsible for running the workflows."""
 
+from flask import current_app
+
 from workflow.errors import WorkflowObjectStatusError
 
-from .client import run_workflow, continue_execution
 from .engine import BibWorkflowEngine
 from .models import DbWorkflowObject, Workflow
 
@@ -43,7 +44,7 @@ def run_worker(wname, data, **kwargs):
     engine = BibWorkflowEngine.with_name(wname, **kwargs)
     engine.save()
     objects = get_workflow_object_instances(data, engine)
-    run_workflow(engine, objects)
+    engine.process(objects, **kwargs)
     return engine
 
 
@@ -67,7 +68,7 @@ def restart_worker(wid, **kwargs):
     if "data" not in kwargs:
         objects = []
 
-        if cfg['WORKFLOWS_SNAPSHOTS_ENABLED']:
+        if current_app.config.get('WORKFLOWS_SNAPSHOTS_ENABLED', False):
             # Get data from initial object
             initials = DbWorkflowObject.query.filter(
                 DbWorkflowObject.id_workflow == wid,
@@ -92,7 +93,7 @@ def restart_worker(wid, **kwargs):
             ).all()
     else:
         objects = get_workflow_object_instances(kwargs["data"], engine)
-    run_workflow(wfe=engine, data=objects)
+    engine.process(objects, **kwargs)
     return engine
 
 
@@ -121,7 +122,7 @@ def continue_worker(oid, restart_point="continue_next", **kwargs):
 
     engine = BibWorkflowEngine(workflow, **kwargs)
     engine.save()
-    continue_execution(engine, workflow_object, restart_point=restart_point)
+    engine.continue_object(workflow_object, restart_point=restart_point, **kwargs)
     return engine
 
 
@@ -161,7 +162,7 @@ def get_workflow_object_instances(data, engine):
                 if data_object.status == data_object.known_statuses.COMPLETED:
                     data_object.status = data_object.known_statuses.INITIAL
 
-                if cfg['WORKFLOWS_SNAPSHOTS_ENABLED']:
+                if current_app.config.get('WORKFLOWS_SNAPSHOTS_ENABLED', False):
                     generate_snapshot(data_object, engine)
 
             workflow_objects.append(data_object)
@@ -175,7 +176,7 @@ def get_workflow_object_instances(data, engine):
                 engine,
                 data_type
             )
-            if cfg['WORKFLOWS_SNAPSHOTS_ENABLED']:
+            if current_app.config.get('WORKFLOWS_SNAPSHOTS_ENABLED', False):
                 generate_snapshot(current_obj, engine)
             workflow_objects.append(current_obj)
 

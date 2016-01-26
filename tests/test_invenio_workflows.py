@@ -28,12 +28,9 @@
 from __future__ import absolute_import, print_function
 
 from flask import Flask
-from flask_cli import FlaskCLI
-from flask_babelex import Babel
+
 
 from demo_package.workflows.demo_workflow import demo_workflow
-
-from invenio_db import InvenioDB, db
 
 from invenio_workflows import InvenioWorkflows, start
 
@@ -61,9 +58,5 @@ def test_init():
 
 def test_api(app):
     """Test api."""
-    Babel(app)
-    FlaskCLI(app)
-    InvenioDB(app)
-    InvenioWorkflows(app)
     with app.app_context():
         pass
