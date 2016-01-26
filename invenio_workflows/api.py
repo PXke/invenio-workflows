@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -16,54 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Invenio; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-"""
-Main API for the workflows.
+#
+# In applying this license, CERN does not
+# waive the privileges and immunities granted to it by virtue of its status
+# as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-If you want to run a workflow using the workflows module,
-this is the high level API you will want to use.
-"""
-
-from werkzeug.utils import import_string, cached_property
-
-from invenio_base.globals import cfg
+"""API for workflows."""
 
 from .models import DbWorkflowObject
-from .utils import BibWorkflowObjectIdContainer
-
-
-class WorkerBackend(object):
-    """WorkerBackend is a class representing the worker.
-
-    It will automatically get the worker thanks to the configuration
-    when called.
-    """
-    @cached_property
-    def worker_modspec(self):
-        return 'invenio_workflows.workers.%s:%s' % (
-            cfg['CFG_BIBWORKFLOW_WORKER'], cfg['CFG_BIBWORKFLOW_WORKER'])
-
-    @cached_property
-    def worker(self):
-        """Represent the worker.
-
-        This cached property is the one which is returning the worker
-        to use.
-
-        :return: the worker configured into the configuration file.
-        """
-        try:
-            return import_string(self.worker_modspec)
-        except:
-            from invenio_ext.logging import register_exception
-            # Let's report about broken plugins
-            current_app.logger.exception()
-
-    def __call__(self):
-        """Action on call."""
-        return self.worker()
-
-
-WORKER = WorkerBackend()
+# from .utils import BibWorkflowObjectIdContainer
 
 
 def start(workflow_name, data, **kwargs):

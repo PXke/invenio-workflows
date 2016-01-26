@@ -22,12 +22,25 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Version information for invenio-workflows.
 
-This file is imported by ``invenio_workflows.__init__``,
-and parsed by ``setup.py``.
+"""Minimal Flask application example for development.
+
+Run example development server:
+
+.. code-block:: console
+
+   $ cd examples
+   $ flask -a app.py --debug run
 """
 
 from __future__ import absolute_import, print_function
 
-__version__ = "1.0.0a1.dev20160126"
+from flask import Flask
+from flask_babelex import Babel
+
+from invenio_workflows import InvenioWorkflows
+
+# Create Flask application
+app = Flask(__name__)
+Babel(app)
+InvenioWorkflows(app)
