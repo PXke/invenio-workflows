@@ -37,10 +37,21 @@ from __future__ import absolute_import, print_function
 
 from flask import Flask
 from flask_babelex import Babel
-
+from flask_cli import FlaskCLI
+from invenio_db import InvenioDB
 from invenio_workflows import InvenioWorkflows
+import os
 
 # Create Flask application
 app = Flask(__name__)
 Babel(app)
+FlaskCLI(app)
+InvenioDB(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'
+)
 InvenioWorkflows(app)
+
+with app.app_context():
+    from invenio_db import db
+    db.create_all()

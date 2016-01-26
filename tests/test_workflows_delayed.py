@@ -29,7 +29,6 @@ from test_workflows import WorkflowTasksTestCase
 
 
 class WorkflowDelayedTest(WorkflowTasksTestCase):
-
     """Class to test the delayed workflows."""
 
     def setUp(self):
@@ -79,7 +78,6 @@ class WorkflowDelayedTest(WorkflowTasksTestCase):
 
         engineb = asyncr.get(uuid_to_workflow)
 
-
         self.assertEqual(WorkflowStatus.COMPLETED, engineb.status)
         self.assertEqual(20, test_objecte.get_data())
 
@@ -102,7 +100,7 @@ class WorkflowDelayedTest(WorkflowTasksTestCase):
 
     def test_dirty_worker(self):
         """Deep test of celery worker."""
-        from invenio_workflows.workers.worker_celery import (
+        from invenio_workflows.worker_celery import (
             celery_run, celery_restart, celery_continue
         )
         from invenio_workflows.utils import \

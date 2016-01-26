@@ -23,8 +23,10 @@
 
 """API for workflows."""
 
-from .models import DbWorkflowObject
-# from .utils import BibWorkflowObjectIdContainer
+from workflow.errors import WorkflowAPIError
+
+from .tasks import run, restart, resume
+from .utils import BibWorkflowObjectIdContainer
 
 
 def start(workflow_name, data, **kwargs):
@@ -52,6 +54,7 @@ def start(workflow_name, data, **kwargs):
     :return: DbWorkflowEngine that ran the workflow.
     """
     from .worker_engine import run_worker
+
     if not isinstance(data, list):
         data = [data]
 
@@ -79,6 +82,7 @@ def start_delayed(workflow_name, data, **kwargs):
 
     :return: AsynchronousResultWrapper
     """
+    from .models import DbWorkflowObject
     # The goal of this part is to avoid a SQLalchemy decoherence in case
     # some one try to send a Bibworkflow object. To avoid to send the
     # complete object and get SQLAlchemy error of mapping, we save the id
@@ -154,8 +158,9 @@ def start_by_oids(workflow_name, oids, **kwargs):
 
     :return: BibWorkflowEngine that ran the workflow.
     """
+    from .models import DbWorkflowObject
+
     if not oids:
-        from workflow.errors import WorkflowAPIError
         raise WorkflowAPIError("No Object IDs are defined")
 
     objects = DbWorkflowObject.query.filter(
@@ -186,8 +191,9 @@ def start_by_oids_delayed(workflow_name, oids, **kwargs):
 
     :return: AsynchronousResultWrapper.
     """
+    from .models import DbWorkflowObject
+
     if not oids:
-        from workflow.errors import WorkflowAPIError
         raise WorkflowAPIError("No Object IDs are defined")
 
     objects = DbWorkflowObject.query.filter(
@@ -271,6 +277,8 @@ def resume_objects_in_workflow(id_workflow, start_point="continue_next",
 
     yield: BibWorkflowEngine that ran the workflow
     """
+    from .models import DbWorkflowObject
+
     # Resume workflow if there are objects to resume
     objects = DbWorkflowObject.query.filter(
         DbWorkflowObject.id_workflow == id_workflow,

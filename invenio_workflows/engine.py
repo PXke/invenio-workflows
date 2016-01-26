@@ -342,8 +342,27 @@ class InvProcessingFactory(DbProcessingFactory):
             eng, objects, obj
         )
 
+    @staticmethod
+    def after_processing(eng, objects):
+        """Action after process to update status."""
+        super(InvProcessingFactory, InvProcessingFactory).after_processing(
+            eng, objects
+        )
+        eng.db.session.commit()
+
 
 class InvTransitionAction(DbTransitionAction):
+
+    @staticmethod
+    def Exception(obj, eng, callbacks, exc_info):
+        super(InvTransitionAction, InvTransitionAction).Exception(
+            obj, eng, callbacks, exc_info
+        )
+        try:
+            eng.db.session.commit()
+        except:
+            eng.db.session.rollback()
+            raise
 
     @staticmethod
     def WaitProcessing(obj, eng, callbacks, exc_info):
@@ -362,6 +381,11 @@ class InvTransitionAction(DbTransitionAction):
         eng.log.warning("Workflow '%s' halted at task %s with message: %s",
                         eng.name, eng.current_taskname or "Unknown", e.message)
         TransitionActions.HaltProcessing(obj, eng, callbacks, exc_info)
+        try:
+            eng.db.session.commit()
+        except:
+            eng.db.session.rollback()
+            raise
 
     @staticmethod
     def HaltProcessing(obj, eng, callbacks, exc_info):
@@ -377,6 +401,11 @@ class InvTransitionAction(DbTransitionAction):
                 "Workflow '%s' waiting at task %s with message: %s",
                 eng.name, eng.current_taskname or "Unknown", e.message
             )
+            try:
+                eng.db.session.commit()
+            except:
+                eng.db.session.rollback()
+                raise
         else:
             from invenio_utils.deprecation import RemovedInInvenio23Warning
             import warnings
