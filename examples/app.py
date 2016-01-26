@@ -39,7 +39,6 @@ from flask import Flask
 from flask_babelex import Babel
 from flask_cli import FlaskCLI
 from invenio_db import InvenioDB
-
 from invenio_workflows import InvenioWorkflows
 
 import os

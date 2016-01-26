@@ -19,14 +19,14 @@
 
 from __future__ import absolute_import
 from six import reraise
-
 from celery import shared_task
+
 
 from invenio_workflows.worker_result import AsynchronousResultWrapper
 from invenio_workflows.errors import WorkflowWorkerError
 
 
-@shared_task(name='invenio_workflows.workers.worker_celery.run_worker')
+@shared_task
 def celery_run(workflow_name, data, **kwargs):
     """Run the workflow with Celery."""
     from .worker_engine import run_worker
@@ -47,14 +47,14 @@ def celery_run(workflow_name, data, **kwargs):
     return run_worker(workflow_name, data, **kwargs).uuid
 
 
-@shared_task(name='invenio_workflows.workers.worker_celery.restart_worker')
+@shared_task
 def celery_restart(wid, **kwargs):
     """Restart the workflow with Celery."""
     from .worker_engine import restart_worker
     return restart_worker(wid, **kwargs).uuid
 
 
-@shared_task(name='invenio_workflows.workers.worker_celery.continue_worker')
+@shared_task
 def celery_continue(oid, restart_point, **kwargs):
     """Restart the workflow with Celery."""
     from .worker_engine import continue_worker
