@@ -22,12 +22,41 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Version information for invenio-workflows.
 
-This file is imported by ``invenio_workflows.__init__``,
-and parsed by ``setup.py``.
-"""
+"""Module tests."""
 
 from __future__ import absolute_import, print_function
 
-__version__ = "0.1.0.dev20160000"
+from flask import Flask
+from flask_babelex import Babel
+
+from invenio_workflows import InvenioWorkflows
+
+
+def test_version():
+    """Test version import."""
+    from invenio_workflows import __version__
+    assert __version__
+
+
+def test_init():
+    """Test extension initialization."""
+    app = Flask('testapp')
+    ext = InvenioWorkflows(app)
+    assert 'invenio-workflows' in app.extensions
+
+    app = Flask('testapp')
+    ext = InvenioWorkflows()
+    assert 'invenio-workflows' not in app.extensions
+    ext.init_app(app)
+    assert 'invenio-workflows' in app.extensions
+
+
+def test_view(app):
+    """Test view."""
+    Babel(app)
+    InvenioWorkflows(app)
+    with app.test_client() as client:
+        res = client.get("/")
+        assert res.status_code == 200
+        assert 'Welcome to invenio-workflows' in str(res.data)

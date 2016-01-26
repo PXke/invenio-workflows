@@ -22,12 +22,20 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Version information for invenio-workflows.
 
-This file is imported by ``invenio_workflows.__init__``,
-and parsed by ``setup.py``.
-"""
+"""Pytest configuration."""
 
 from __future__ import absolute_import, print_function
 
-__version__ = "0.1.0.dev20160000"
+import pytest
+from flask import Flask
+
+
+@pytest.fixture()
+def app():
+    """Flask application fixture."""
+    app = Flask('testapp')
+    app.config.update(
+        TESTING=True
+    )
+    return app

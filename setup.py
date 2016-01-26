@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2015 CERN.
+# Copyright (C) 2016 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -22,42 +22,51 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Invenio module for running determined set of tasks."""
+"""Invenio module for running workflows."""
 
 import os
 import sys
 
-from setuptools import setup
+from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
 
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
-requirements = [
-    'Flask>=0.10.1',
-    'six>=1.7.2',
-    'workflow>=1.2.0,<2.0.0',
-    'invenio-base>=0.3.1,<1.0.0',
-    'invenio-celery>=0.1.1,<1.0.0',
-    'invenio-ext>=0.3.1,<1.0.0',
-    'invenio-upgrader>=0.2.0,<1.0.0',
-    'invenio-utils>=0.2.0,<1.0.0',
-    'SQLAlchemy-Utils>=0.30.17',
+tests_require = [
+    'check-manifest>=0.25',
+    'coverage>=4.0',
+    'isort>=4.2.2',
+    'pep257>=0.7.0',
+    'pytest-cache>=1.0',
+    'pytest-cov>=1.8.0',
+    'pytest-pep8>=1.0.6',
+    'pytest>=2.8.0',
 ]
 
-test_requirements = [
-    'unittest2>=1.1.0',
-    'Flask_Testing>=0.4.1',
-    'pytest>=2.8.0',
-    'pytest_cov>=2.1.0',
-    'pytest_pep8>=1.0.6',
-    'coverage>=4.0.0',
-    'invenio-testing>=0.1.0',
+extras_require = {
+    'docs': [
+        'Sphinx>=1.3',
+    ],
+    'tests': tests_require,
+}
+
+extras_require['all'] = []
+for reqs in extras_require.values():
+    extras_require['all'].extend(reqs)
+
+setup_requires = [
+    'Babel>=1.3',
 ]
+
+install_requires = [
+    'Flask-BabelEx>=0.9.2',
+]
+
+packages = find_packages()
 
 
 class PyTest(TestCommand):
-
     """PyTest Test."""
 
     user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
@@ -77,8 +86,11 @@ class PyTest(TestCommand):
     def finalize_options(self):
         """Finalize pytest."""
         TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
+        if hasattr(self, '_test_args'):
+            self.test_suite = ''
+        else:
+            self.test_args = []
+            self.test_suite = True
 
     def run_tests(self):
         """Run tests."""
@@ -98,25 +110,38 @@ setup(
     version=version,
     description=__doc__,
     long_description=readme + '\n\n' + history,
-    keywords='invenio workflows',
+    keywords='invenio TODO',
     license='GPLv2',
     author='CERN',
     author_email='info@invenio-software.org',
     url='https://github.com/inveniosoftware/invenio-workflows',
-    packages=[
-        'invenio_workflows',
-    ],
+    packages=packages,
     zip_safe=False,
     include_package_data=True,
     platforms='any',
-    install_requires=requirements,
-    extras_require={
-        'docs': [
-            'Sphinx>=1.3',
-            'sphinx_rtd_theme>=0.1.7'
+    entry_points={
+        'invenio_base.apps': [
+            'invenio_workflows = invenio_workflows:InvenioWorkflows',
         ],
-        'tests': test_requirements
+        'invenio_i18n.translations': [
+            'messages = invenio_workflows',
+        ],
+        # TODO: Edit these entry points to fit your needs.
+        # 'invenio_access.actions': [],
+        # 'invenio_admin.actions': [],
+        # 'invenio_assets.bundles': [],
+        # 'invenio_base.api_apps': [],
+        # 'invenio_base.api_blueprints': [],
+        # 'invenio_base.blueprints': [],
+        # 'invenio_celery.tasks': [],
+        # 'invenio_db.models': [],
+        # 'invenio_pidstore.minters': [],
+        # 'invenio_records.jsonresolver': [],
     },
+    extras_require=extras_require,
+    install_requires=install_requires,
+    setup_requires=setup_requires,
+    tests_require=tests_require,
     classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
@@ -126,13 +151,12 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Programming Language :: Python :: 2',
-        # 'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        # 'Programming Language :: Python :: 3',
-        # 'Programming Language :: Python :: 3.3',
-        # 'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Development Status :: 1 - Planning',
     ],
-    tests_require=test_requirements,
     cmdclass={'test': PyTest},
 )
