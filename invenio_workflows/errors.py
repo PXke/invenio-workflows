@@ -20,8 +20,12 @@
 from workflow.errors import with_str, HaltProcessing
 
 
+class WorkflowsError(Exception):
+    """Base exception for invenio-workflows."""
+
+
 @with_str(('message', ('action', 'payload')))
-class WaitProcessing(HaltProcessing):  # Used to be WorkflowHalt
+class WaitProcessing(HaltProcessing, WorkflowsError):
     def __init__(self, message="", action=None, payload=None):
         super(WaitProcessing, self).__init__(
             message=message,
@@ -31,7 +35,7 @@ class WaitProcessing(HaltProcessing):  # Used to be WorkflowHalt
 
 
 @with_str(('message', ('worker_name', 'payload')))
-class WorkflowWorkerError(Exception):
+class WorkflowWorkerError(WorkflowsError):
     """Raised when there is a problem with workflow workers."""
 
     def __init__(self, message, worker_name="No Name Given", payload=None):
