@@ -18,7 +18,7 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 from __future__ import absolute_import
-from six import reraise
+from six import reraise, text_type
 from celery import shared_task
 
 
@@ -28,7 +28,6 @@ from invenio_workflows.errors import WorkflowWorkerError
 @shared_task
 def celery_run(workflow_name, data, **kwargs):
     """Run the workflow with Celery."""
-
     from .worker_engine import run_worker
     from .utils import BibWorkflowObjectIdContainer
 
@@ -44,7 +43,7 @@ def celery_run(workflow_name, data, **kwargs):
     else:
         raise WorkflowWorkerError("Data is not a list: %r" % (data,))
 
-    return run_worker(workflow_name, data, **kwargs).uuid
+    return text_type(run_worker(workflow_name, data, **kwargs).uuid)
 
 
 @shared_task
