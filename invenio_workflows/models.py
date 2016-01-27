@@ -42,6 +42,7 @@ from workflow.engine_db import WorkflowStatus, EnumLabel
 from workflow.utils import staticproperty
 
 from .signals import workflow_object_saved
+from .proxies import workflows
 
 
 class ObjectStatus(EnumLabel):
@@ -494,7 +495,6 @@ class DbWorkflowObject(db.Model):
 
     def get_formatted_data(self, **kwargs):
         """Get the formatted representation for this object."""
-        from .registry import workflows
         try:
             name = self.get_workflow_name()
             if not name:
@@ -762,7 +762,6 @@ class DbWorkflowObject(db.Model):
 
     def get_current_task_info(self):
         """Return dictionary of current task function info for this object."""
-        from .registry import workflows
         task_pointer = self.get_current_task()
         name = self.get_workflow_name()
         if not name:

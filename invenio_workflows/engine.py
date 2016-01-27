@@ -212,7 +212,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
         :param workflow_name: name of the workflow.
         :type workflow_name: str
         """
-        from .registry import workflows
+        from .proxies import workflows
         if workflow_name not in workflows:
             # No workflow with that name exists
             raise WorkflowDefinitionError("Workflow '%s' does not exist"
