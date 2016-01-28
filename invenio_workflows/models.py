@@ -44,6 +44,7 @@ from workflow.utils import staticproperty
 from .signals import workflow_object_saved
 from .proxies import workflows
 
+from .utils import get_func_info
 
 class ObjectStatus(EnumLabel):
 
@@ -768,7 +769,7 @@ class DbWorkflowObject(db.Model):
             return ""
         current_task = workflows[name]
         for step in task_pointer:
-            current_task = current_task[step]
+            current_task = current_task.workflow[step]
             if callable(current_task):
                 return get_func_info(current_task)
 
