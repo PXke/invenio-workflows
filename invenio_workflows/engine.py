@@ -36,7 +36,6 @@ from workflow.engine import (
 )
 from workflow.engine_db import (
     DbProcessingFactory,
-    DbTransitionAction,
     DbWorkflowEngine,
     WorkflowStatus,
 )
@@ -219,7 +218,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
                                           % (workflow_name,),
                                           workflow_name=workflow_name)
         self.workflow_definition = workflows[workflow_name]
-        self.setWorkflow(self.workflow_definition.workflow)
+        self.callbacks.replace(self.workflow_definition.workflow)
 
     def get_default_data_type(self):
         """Return default data type from workflow definition."""
@@ -248,7 +247,7 @@ class InvActionMapper(ActionMapper):
     @staticmethod
     def before_each_callback(eng, callback_func, obj):
         """Action to take before every WF callback."""
-        eng.log.debug("Executing callback %s" % (repr(callback_func),))
+        eng.log.info("Executing callback %s" % (repr(callback_func),))
 
     @staticmethod
     def after_each_callback(eng, callback_func, obj):
@@ -282,27 +281,14 @@ class InvProcessingFactory(DbProcessingFactory):
             eng, objects, obj
         )
 
-    @staticmethod
-    def after_processing(eng, objects):
-        """Action after process to update status."""
-        super(InvProcessingFactory, InvProcessingFactory).after_processing(
-            eng, objects
-        )
-        eng.db.session.commit()
 
-
-class InvTransitionAction(DbTransitionAction):
+class InvTransitionAction(TransitionActions):
 
     @staticmethod
     def Exception(obj, eng, callbacks, exc_info):
         super(InvTransitionAction, InvTransitionAction).Exception(
             obj, eng, callbacks, exc_info
         )
-        try:
-            eng.db.session.commit()
-        except:
-            eng.db.session.rollback()
-            raise
 
     @staticmethod
     def WaitProcessing(obj, eng, callbacks, exc_info):
@@ -320,12 +306,10 @@ class InvTransitionAction(DbTransitionAction):
         eng.save(WorkflowStatus.HALTED)
         eng.log.warning("Workflow '%s' halted at task %s with message: %s",
                         eng.name, eng.current_taskname or "Unknown", e.message)
-        TransitionActions.HaltProcessing(obj, eng, callbacks, exc_info)
-        try:
-            eng.db.session.commit()
-        except:
-            eng.db.session.rollback()
-            raise
+
+        TransitionActions.WaitProcessing(
+            obj, eng, callbacks, exc_info
+        )
 
     @staticmethod
     def HaltProcessing(obj, eng, callbacks, exc_info):
@@ -336,16 +320,13 @@ class InvTransitionAction(DbTransitionAction):
                      callback_pos=eng.state.callback_pos,
                      id_workflow=eng.uuid)
             eng.save(WorkflowStatus.HALTED)
-            TransitionActions.HaltProcessing(obj, eng, callbacks, exc_info)
-            eng.log.warning(
+            obj.log.warning(
                 "Workflow '%s' waiting at task %s with message: %s",
                 eng.name, eng.current_taskname or "Unknown", e.message
             )
-            try:
-                eng.db.session.commit()
-            except:
-                eng.db.session.rollback()
-                raise
+            TransitionActions.HaltProcessing(
+                obj, eng, callbacks, exc_info
+            )
         else:
             InvTransitionAction.WaitProcessing(obj, eng, callbacks, exc_info)
 

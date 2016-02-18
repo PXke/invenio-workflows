@@ -306,11 +306,13 @@ class Workflow(db.Model):
 
     def save(self, status=None):
         """Save object to persistent storage."""
-        self.modified = datetime.now()
-        if status is not None:
-            self.status = status
-        self._extra_data = _encode(self.extra_data)
-        db.session.add(self)
+        with db.session.begin_nested():
+            self.modified = datetime.now()
+            if status is not None:
+                self.status = status
+            self._extra_data = _encode(self.extra_data)
+            db.session.merge(self)
+        db.session.commit()
 
 
 
@@ -785,22 +787,24 @@ class DbWorkflowObject(db.Model):
 
     def save(self, status=None, callback_pos=None, id_workflow=None):
         """Save object to persistent storage."""
-        if callback_pos is not None:
-            self.log.debug("Saving callback pos: %s" % (callback_pos,))
-            self.callback_pos = callback_pos  # Used by admins
-        self._data = _encode(self.data)
-        self._extra_data = _encode(self.extra_data)
+        with db.session.begin_nested():
+            if callback_pos is not None:
+                self.callback_pos = callback_pos  # Used by admins
+            self.log.debug("Current callback pos: %s" % (self.callback_pos,))
+            self._data = _encode(self.data)
+            self._extra_data = _encode(self.extra_data)
 
-        self.modified = datetime.now()
-        if status is not None:
-            self.status = status
-        if id_workflow is not None:
-            self.id_workflow = id_workflow
-        db.session.add(self)
-        if self.id is not None:
-            # Because the logger will save to the DB so it NEEDS self.id to be
-            # not None
-            self.log.debug("Saved object: %s" % (self.id or "new",))
+            self.modified = datetime.now()
+            if status is not None:
+                self.status = status
+            if id_workflow is not None:
+                self.id_workflow = id_workflow
+            db.session.merge(self)
+            if self.id is not None:
+                # Because the logger will save to the DB so it NEEDS self.id to be
+                # not None
+                self.log.debug("Saved object: %s" % (self.id or "new",))
+        db.session.commit()
         workflow_object_saved.send(self)
 
     @classmethod
@@ -839,7 +843,9 @@ class DbWorkflowObject(db.Model):
     def create_object(cls, **kwargs):
         """Create a new Workflow Object with given content."""
         obj = DbWorkflowObject(**kwargs)
-        db.session.add(obj)
+        with db.session.begin_nested():
+            db.session.add(obj)
+        db.session.commit()
         return obj
 
     @classmethod
