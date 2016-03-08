@@ -26,6 +26,8 @@ from uuid import uuid1 as new_uuid
 
 from flask import current_app
 
+import traceback
+
 from invenio_db import db
 
 from workflow.engine import (
@@ -286,6 +288,15 @@ class InvTransitionAction(TransitionActions):
 
     @staticmethod
     def Exception(obj, eng, callbacks, exc_info):
+        exception_repr = ''.join(traceback.format_exception(*exc_info))
+        msg = "Error:\n%s" % (exception_repr)
+        eng.log.error(msg)
+        if obj:
+            # Sets an error message as a tuple (title, details)
+            obj.set_error_message(exception_repr)
+            obj.save(status=obj.known_statuses.ERROR, callback_pos=eng.state.callback_pos,
+                     id_workflow=eng.uuid)
+        eng.save(WorkflowStatus.ERROR)
         super(InvTransitionAction, InvTransitionAction).Exception(
             obj, eng, callbacks, exc_info
         )
