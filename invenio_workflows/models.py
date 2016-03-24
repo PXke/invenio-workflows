@@ -41,6 +41,7 @@ from invenio_db import db
 
 from workflow.engine_db import WorkflowStatus, EnumLabel
 from workflow.utils import staticproperty
+from workflow.errors import WorkflowAPIError
 
 from .signals import workflow_object_saved
 from .proxies import workflows
@@ -309,7 +310,6 @@ class Workflow(db.Model):
                 self.status = status
             self._extra_data = _encode(self.extra_data)
             db.session.merge(self)
-        db.session.commit()
 
 
 
@@ -329,6 +329,7 @@ class DbWorkflowObject(db.Model):
 
         obj = DbWorkflowObject()
         obj.save()
+        db.session.commit()
 
     Or, like this:
 
@@ -350,6 +351,7 @@ class DbWorkflowObject(db.Model):
     .. code-block:: python
 
         obj.save()
+        db.session.commit()
 
     Now you can for example run it in a workflow:
 
@@ -594,6 +596,7 @@ class DbWorkflowObject(db.Model):
         if delayed:
             from .api import start_delayed as start_func
             self.save()
+            db.session.commit()
         else:
             from .api import start as start_func
         return start_func(workflow_name, data=[self], **kwargs)
@@ -623,13 +626,12 @@ class DbWorkflowObject(db.Model):
 
         :return: DbWorkflowEngine (or AsynchronousResultWrapper).
         """
-        from workflow.errors import WorkflowAPIError
-
         self.save()
         if not self.id_workflow:
             raise WorkflowAPIError("No workflow associated with object: %r"
                                    % (repr(self),))
         if delayed:
+            db.session.commit()
             from .api import continue_oid_delayed as continue_func
         else:
             from .api import continue_oid as continue_func
@@ -659,7 +661,7 @@ class DbWorkflowObject(db.Model):
             setattr(self, attr, getattr(other, attr))
         setattr(self, 'data', other.data)
         setattr(self, 'extra_data', other.extra_data)
-        self.save()
+        return self
 
     def save(self, status=None, callback_pos=None, id_workflow=None):
         """Save object to persistent storage."""
@@ -680,40 +682,7 @@ class DbWorkflowObject(db.Model):
                 # Because the logger will save to the DB so it NEEDS self.id to be
                 # not None
                 self.log.debug("Saved object: %s" % (self.id or "new",))
-        db.session.commit()
         workflow_object_saved.send(self)
-
-    @classmethod
-    def get(cls, *criteria, **filters):
-        """Wrapper of SQLAlchemy to get a DbWorkflowObject.
-
-        A wrapper for the filter and filter_by functions of SQLAlchemy.
-        Define a dict with which columns should be filtered by which values.
-
-        .. code-block:: python
-
-            Workflow.get(uuid=uuid)
-            Workflow.get(Workflow.uuid != uuid)
-
-        The function supports also "hybrid" arguments.
-
-        .. code-block:: python
-
-            Workflow.get(Workflow.module_name != 'i_hate_this_module',
-                         user_id=user_id)
-
-        See also SQLAlchemy BaseQuery's filter and filter_by documentation.
-        """
-        return cls.query.filter(*criteria).filter_by(**filters)
-
-    @classmethod
-    def delete(cls, oid):
-        """Delete a DbWorkflowObject."""
-        if isinstance(oid, DbWorkflowObject):
-            db.session.delete(oid)
-        else:
-            db.session.delete(
-                DbWorkflowObject.get(DbWorkflowObject.id == oid).first())
 
     @classmethod
     def create_object(cls, **kwargs):
@@ -721,24 +690,6 @@ class DbWorkflowObject(db.Model):
         obj = DbWorkflowObject(**kwargs)
         with db.session.begin_nested():
             db.session.add(obj)
-        db.session.commit()
-        return obj
-
-    @classmethod
-    def create_object_revision(cls, old_obj, status, **kwargs):
-        """Create a Workflow Object copy with customized values."""
-        # Create new object and copy it
-        obj = DbWorkflowObject(**kwargs)
-        obj.copy(old_obj)
-
-        # Overwrite some changes
-
-        obj.status = status
-        obj.created = datetime.now()
-        obj.modified = datetime.now()
-        for key, value in iteritems(kwargs):
-            setattr(obj, key, value)
-        db.session.add(obj)
         return obj
 
 

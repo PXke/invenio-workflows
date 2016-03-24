@@ -19,17 +19,15 @@
 
 from __future__ import absolute_import
 
-from six import reraise, text_type
+from six import text_type
 from celery import shared_task
 
-from .worker_result import AsynchronousResultWrapper
 from .errors import WorkflowWorkerError
 
 
 @shared_task
 def run(workflow_name, data, **kwargs):
     """Run the workflow with Celery."""
-
     from .worker_engine import run_worker
     from .utils import BibWorkflowObjectIdContainer
 

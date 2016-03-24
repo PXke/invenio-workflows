@@ -62,16 +62,11 @@ class InvenioWorkflows(object):
                  entry_point_group='invenio_workflows.workflows',
                  **kwargs):
         """Flask application initialization."""
-        self.init_config(app)
         state = _WorkflowState(
             app, entry_point_group=entry_point_group, **kwargs
         )
         app.extensions['invenio-workflows'] = state
         return state
-
-    def init_config(self, app):
-        """Initialize configuration."""
-        app.config.setdefault("WORKFLOWS_SNAPSHOTS_ENABLED", False)
 
     def __getattr__(self, name):
         """Proxy to state object."""

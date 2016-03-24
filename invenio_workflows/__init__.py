@@ -27,8 +27,12 @@
 from __future__ import absolute_import, print_function
 
 from .ext import InvenioWorkflows
-from .api import start
+from .api import start, start_delayed
 from .proxies import workflows
+from .models import DbWorkflowObject, Workflow
 from .version import __version__
 
-__all__ = ('__version__', 'InvenioWorkflows', 'start', 'workflows')
+
+__all__ = ('__version__', 'InvenioWorkflows',
+           'start', 'start_delayed',
+           'workflows', 'DbWorkflowObject', 'Workflow')

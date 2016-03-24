@@ -35,9 +35,9 @@ from workflow.engine import (
     Break,
     Continue,
     TransitionActions,
+    ProcessingFactory
 )
 from workflow.engine_db import (
-    DbProcessingFactory,
     DbWorkflowEngine,
     WorkflowStatus,
 )
@@ -141,7 +141,7 @@ class BibWorkflowEngine(DbWorkflowEngine):
     @staticproperty
     def processing_factory():  # pylint: disable=no-method-argument
         """Provide a proccessing factory."""
-        return InvProcessingFactory
+        return InvenioProcessingFactory
 
     @property
     def uuid(self):
@@ -244,7 +244,7 @@ BibWorkflowEngine
 """ % (self.db_obj.__str__(),)
 
 
-class InvActionMapper(ActionMapper):
+class InvenioActionMapper(ActionMapper):
 
     @staticmethod
     def before_each_callback(eng, callback_func, obj):
@@ -263,29 +263,55 @@ class InvActionMapper(ActionMapper):
             obj.extra_data["_task_history"].append(task_history)
 
 
-class InvProcessingFactory(DbProcessingFactory):
+class InvenioProcessingFactory(ProcessingFactory):
 
     @staticproperty
     def transition_exception_mapper():  # pylint: disable=no-method-argument
         """Define our for handling transition exceptions."""
-        return InvTransitionAction
+        return InvenioTransitionAction
 
     @staticproperty
     def action_mapper():  # pylint: disable=no-method-argument
         """Set a mapper for actions while processing."""
-        return InvActionMapper
+        return InvenioActionMapper
 
     @staticmethod
     def before_object(eng, objects, obj):
         """Action to take before the processing of an object begins."""
-        if "_error_msg" in obj.extra_data:
-            del obj.extra_data["_error_msg"]
-        super(InvProcessingFactory, InvProcessingFactory).before_object(
+        super(InvenioProcessingFactory, InvenioProcessingFactory).before_object(
             eng, objects, obj
         )
+        if "_error_msg" in obj.extra_data:
+            del obj.extra_data["_error_msg"]
+        db.session.commit()
+
+    @staticmethod
+    def after_object(eng, objects, obj):
+        """Action to take once the proccessing of an object completes."""
+        # We save each object once it is fully run through
+        super(InvenioProcessingFactory, InvenioProcessingFactory).after_object(eng, objects, obj)
+        obj.save(status=obj.known_statuses.COMPLETED, id_workflow=eng.db_obj.uuid)
+        db.session.commit()
+
+    @staticmethod
+    def before_processing(eng, objects):
+        """Executed before processing the workflow."""
+        super(InvenioProcessingFactory, InvenioProcessingFactory).before_processing(eng, objects)
+        eng.save(WorkflowStatus.RUNNING)
+        db.session.commit()
+
+    @staticmethod
+    def after_processing(eng, objects):
+        """Action after process to update status."""
+        super(InvenioProcessingFactory, InvenioProcessingFactory).after_processing(eng, objects)
+        if eng.has_completed:
+            eng.save(WorkflowStatus.COMPLETED)
+        else:
+            eng.save(WorkflowStatus.HALTED)
+        db.session.commit()
 
 
-class InvTransitionAction(TransitionActions):
+class InvenioTransitionAction(TransitionActions):
 
     @staticmethod
     def Exception(obj, eng, callbacks, exc_info):
@@ -298,7 +324,10 @@ class InvTransitionAction(TransitionActions):
             obj.save(status=obj.known_statuses.ERROR, callback_pos=eng.state.callback_pos,
                      id_workflow=eng.uuid)
         eng.save(WorkflowStatus.ERROR)
-        super(InvTransitionAction, InvTransitionAction).Exception(
+        db.session.commit()
+
+        # Call super which will reraise
+        super(InvenioTransitionAction, InvenioTransitionAction).Exception(
             obj, eng, callbacks, exc_info
         )
 
@@ -309,6 +338,9 @@ class InvTransitionAction(TransitionActions):
         ..note::
             We're essentially doing HaltProcessing, plus `obj.set_action` and
             object status `WAITING` instead of `HALTED`.
+
+            This is not present in TransitionActions so that's why it is not
+            calling super in this case.
         """
         e = exc_info[1]
         obj.set_action(e.action, e.message)
@@ -316,12 +348,15 @@ class InvTransitionAction(TransitionActions):
                  callback_pos=eng.state.callback_pos,
                  id_workflow=eng.uuid)
         eng.save(WorkflowStatus.HALTED)
-        eng.log.warning("Workflow '%s' halted at task %s with message: %s",
+        eng.log.warning("Workflow '%s' waiting at task %s with message: %s",
                         eng.name, eng.current_taskname or "Unknown", e.message)
+        db.session.commit()
 
-        TransitionActions.WaitProcessing(
+        # Call super which will reraise
+        TransitionActions.HaltProcessing(
             obj, eng, callbacks, exc_info
         )
+
 
     @staticmethod
     def HaltProcessing(obj, eng, callbacks, exc_info):
@@ -333,14 +368,17 @@ class InvTransitionAction(TransitionActions):
                      id_workflow=eng.uuid)
             eng.save(WorkflowStatus.HALTED)
             obj.log.warning(
-                "Workflow '%s' waiting at task %s with message: %s",
+                "Workflow '%s' halted at task %s with message: %s",
                 eng.name, eng.current_taskname or "Unknown", e.message
             )
+            db.session.commit()
+
+            # Call super which will reraise
             TransitionActions.HaltProcessing(
                 obj, eng, callbacks, exc_info
             )
         else:
-            InvTransitionAction.WaitProcessing(obj, eng, callbacks, exc_info)
+            InvenioTransitionAction.WaitProcessing(obj, eng, callbacks, exc_info)
 
     @staticmethod
     def StopProcessing(obj, eng, callbacks, exc_info):

@@ -28,32 +28,78 @@
 from __future__ import absolute_import, print_function
 
 import os
+import shutil
+import tempfile
 
 import pytest
 
 from flask import Flask
 from flask_cli import FlaskCLI
-from flask_babelex import Babel
-from flask_celeryext import create_celery_app
+from flask_celeryext import FlaskCeleryExt
 
-from invenio_db import InvenioDB
+from invenio_db import InvenioDB, db
 from invenio_workflows import InvenioWorkflows
-from invenio_celery import InvenioCelery
+#from invenio_celery import InvenioCelery
 
 
 @pytest.fixture()
-def app():
+def app(request):
     """Flask application fixture."""
-    app = Flask('testapp')
+    instance_path = tempfile.mkdtemp()
+    app = Flask(__name__, instance_path=instance_path)
     app.config.update(
-        TESTING=True,
         CELERY_ALWAYS_EAGER=True,
+        CELERY_CACHE_BACKEND="memory",
+        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        CELERY_RESULT_BACKEND="cache",
+        SECRET_KEY="CHANGE_ME",
+        SECURITY_PASSWORD_SALT="CHANGE_ME_ALSO",
         SQLALCHEMY_DATABASE_URI=os.environ.get(
-            'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db')
+            'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
+        TESTING=True,
     )
-    Babel(app)
     FlaskCLI(app)
+    FlaskCeleryExt(app)
     InvenioDB(app)
-    InvenioCelery(app)
+    #InvenioCelery(app)
     InvenioWorkflows(app)
+
+    with app.app_context():
+        db.create_all()
+
+    def teardown():
+        with app.app_context():
+            db.drop_all()
+        shutil.rmtree(instance_path)
+
+    request.addfinalizer(teardown)
     return app
+
+
+@pytest.fixture
+def halt_workflow(app):
+    def halt_engine(obj, eng):
+        return eng.halt("Test")
+
+    class HaltTest(object):
+        workflow = [halt_engine]
+
+    return HaltTest
+
+
+@pytest.fixture
+def halt_workflow_conditional(app):
+    from workflow.patterns import IF_ELSE
+
+    def always_true(obj, eng):
+        return True
+
+    def halt_engine(obj, eng):
+        return eng.halt("Test")
+
+    class BranchTest(object):
+        workflow = [
+            IF_ELSE(always_true, [halt_engine], [halt_engine])
+        ]
+
+    return BranchTest

@@ -21,20 +21,17 @@
 
 from __future__ import absolute_import
 
-import os
+from uuid import uuid1
 
 from invenio_db import db
 
+from invenio_workflows import DbWorkflowObject, Workflow
+
 
 def test_db(app):
-    with app.app_context():
-        db.create_all()
+    assert 'workflows_object' in db.metadata.tables
+    assert 'workflows_workflow' in db.metadata.tables
 
-        assert 'workflows_object' in db.metadata.tables
-        assert 'workflows_workflow' in db.metadata.tables
-
-    from invenio_workflows.models import DbWorkflowObject, Workflow
-    from uuid import uuid1
     with app.app_context():
         workflow = Workflow(name='demo_workflow', uuid=uuid1(),
                             id_user=0)
@@ -42,6 +39,7 @@ def test_db(app):
         bibworkflowobject = DbWorkflowObject(workflow=workflow)
         bibworkflowobject.save()
         db.session.commit()
+
         bwo_id = bibworkflowobject.id
         # delete workflow
         Workflow.delete(workflow.uuid)
@@ -52,8 +50,6 @@ def test_db(app):
                 DbWorkflowObject.query.filter(
                     DbWorkflowObject.id == bwo_id).exists()).scalar())
 
-        from invenio_workflows.models import DbWorkflowObject, Workflow
-        from uuid import uuid1
         workflow = Workflow(name='demo_workflow', uuid=uuid1(),
                             id_user=0)
         workflow.save()
@@ -61,13 +57,15 @@ def test_db(app):
         bibworkflowobject = DbWorkflowObject(workflow=workflow)
         bibworkflowobject.save()
         db.session.commit()
+
         # delete bibworkflowobject
-        bibworkflowobject.delete(bibworkflowobject.id)
+        DbWorkflowObject.query.filter(
+            DbWorkflowObject.id == bibworkflowobject.id
+        ).delete()
         db.session.commit()
+
         # assert workflow is not deleted
         assert (
             db.session.query(
                 Workflow.query.filter(
                     Workflow.uuid == w_uuid).exists()).scalar())
-    with app.app_context():
-        db.drop_all()
