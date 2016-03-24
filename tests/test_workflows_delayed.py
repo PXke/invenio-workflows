@@ -172,9 +172,8 @@ class WorkflowDelayedTest(WorkflowTasksTestCase):
         engine = start("demo_workflow_workflows", [test_object],
                        module_name="unit_tests")
 
-        self.assertEqual(0, engine.get_extra_data()["_nb_workflow_failed"])
+        self.assertEqual(0, engine.extra_data["_nb_workflow_failed"])
         self.assertEqual(WorkflowStatus.COMPLETED, engine.status)
-        self.assertEqual(0, test_object.get_tasks_results()[
-            "review_workflow"][0]["result"]["failed"])
-        self.assertEqual(4, test_object.get_extra_data()["nbworkflowrunning"])
-        self.assertEqual(21, engine.get_extra_data()["_nb_workflow_finish"])
+
+        self.assertEqual(4, test_object.extra_data["nbworkflowrunning"])
+        self.assertEqual(21, engine.extra_data["_nb_workflow_finish"])

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+#
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014, 2015 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015, 2016 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -46,6 +47,7 @@ from .proxies import workflows
 
 from .utils import get_func_info
 
+
 class ObjectStatus(EnumLabel):
 
     INITIAL = 0
@@ -89,13 +91,8 @@ def get_default_data():
 
 def get_default_extra_data():
     return {
-        "_tasks_results": {},
-        "owner": {},
         "_error_msg": None,
-        "_last_task_name": "",
-        "latest_object": -1,
         "_action": None,
-        "redis_search": {},
         "source": "",
         "_task_history": []
     }
@@ -133,9 +130,9 @@ class Workflow(db.Model):
 
     def get_counter(self, object_status):
         return DbWorkflowObject.query.filter(
-                DbWorkflowObject.id_workflow == self.uuid,
-                DbWorkflowObject.status == object_status
-            ).count()
+            DbWorkflowObject.id_workflow == self.uuid,
+            DbWorkflowObject.status == object_status
+        ).count()
 
     @hybrid_property
     def counter_initial(self):
@@ -343,11 +340,10 @@ class DbWorkflowObject(db.Model):
 
     .. code-block:: python
 
-        obj.set_data("<xml ..... />")
-        obj.get_data() == "<xml ..... />"
-        obj.set_extra_data({"param": value})
-        obj.get_extra_data() == {"param": value}
-        obj.add_task_result("myresult", {"result": 1})
+        obj.data = "<xml ..... />"
+        obj.data == "<xml ..... />"
+        obj.extra_data = {"param": value}
+        obj.extra_data == {"param": value}
 
     Then to finally save the object
 
@@ -539,95 +535,6 @@ class DbWorkflowObject(db.Model):
         """Enable equal operators on DbWorkflowObjects."""
         return not self.__eq__(other)
 
-    def add_task_result(self, name, result,
-                        template="workflows/results/default.html"):
-        """Add a new task result defined by name.
-
-        The name is the dictionary key used to group similar types of
-        results as well as a possible label for the result.
-
-        The result is a dictionary given as context to the template
-        when rendered. The result given here is added to a list of results
-        for this name.
-
-        .. code-block:: python
-
-                obj = DbWorkflowObject()  # or DbWorkflowObject.query.get(id)
-                obj.add_task_result("foo", my_result, "path/to/template")
-
-        :param name: The name of the task in human friendly way.
-                     It is used as a key and label for the result rendering.
-        :type name: string
-
-        :param result: The result to store - passed to render_template().
-        :type result: dict
-
-        :param template: The location of the template to render the result.
-        :type template: string
-        """
-        extra_data = getattr(self, "extra_data", self.get_extra_data())
-        task_result = {
-            "name": name,
-            "result": result,
-            "template": template
-        }
-        if name in extra_data["_tasks_results"]:
-            extra_data["_tasks_results"][name].append(task_result)
-        else:
-            extra_data["_tasks_results"][name] = [task_result]
-        self.set_extra_data(extra_data)
-
-    def update_task_results(self, name, results):
-        """Update tasks results by name.
-
-        The name is the dictionary key used to group similar types of
-        results as well as a possible label for the result.
-
-        This functions allows you to update (replace) the list of results
-        associated with a name where each result is structured like this:
-
-        .. code-block:: python
-
-                task_result = {
-                   "name": "foo",
-                   "result": result,
-                   "template": template
-                }
-                obj = DbWorkflowObject()  # or DbWorkflowObject.query.get(id)
-                obj.update_task_results("foo", [task_result])
-
-        :param name: The name of the task in human friendly way.
-                     It is used as a key and label for the result rendering.
-        :type name: string
-
-        :param results: List of results to store - passed to render_template().
-        :type results: list
-
-        :param template: The location of the template to render the result.
-        :type template: string
-        """
-        extra_data = getattr(self, "extra_data", self.get_extra_data())
-        extra_data["_tasks_results"][name] = results
-        self.set_extra_data(extra_data)
-
-    def get_tasks_results(self):
-        """Return the complete set of tasks results.
-
-        The result is given as a dictionary where each result is
-        structured like:
-
-        .. code-block:: python
-
-                task_result = {
-                   "name": name,
-                   "result": result,
-                   "template": template
-                }
-
-        :return: dictionary of results as {name: [result, ..], ..}
-        """
-        return self.get_extra_data()["_tasks_results"]
-
     def set_action(self, action, message):
         """Set the action to be taken for this object.
 
@@ -652,45 +559,15 @@ class DbWorkflowObject(db.Model):
 
         :return: name of action assigned as string, or None
         """
-        return self.get_extra_data().get("_action")
+        return self.extra_data.get("_action")
 
     def get_action_message(self):
         """Retrieve the currently assigned widget, if any."""
-        try:
-            return self.extra_data["_message"]
-        except KeyError:
-            # No widget
-            return ""
-
-    def set_error_message(self, msg):
-        """Set an error message."""
-        self.extra_data["_error_msg"] = msg
-
-    def get_error_message(self):
-        """Retrieve the error message, if any."""
-        if "error_msg" in self.get_extra_data():
-            # Backwards compatibility
-            extra_data = self.get_extra_data()
-            msg = extra_data["error_msg"]
-            del extra_data["error_msg"]
-            self.set_extra_data(extra_data)
-            self.set_error_message(msg)
-        try:
-            return self.get_extra_data()["_error_msg"]
-        except KeyError:
-            # No message
-            return ""
-
-    def reset_error_message(self):
-        """Reset the error message."""
-        extra_data = self.get_extra_data()
-        if "_error_msg" in extra_data:
-            del extra_data["_error_msg"]
-            self.set_extra_data(extra_data)
+        return self.extra_data.get("_message")
 
     def remove_action(self):
         """Remove the currently assigned action."""
-        extra_data = self.get_extra_data()
+        extra_data = self.extra_data
         extra_data["_action"] = None
         extra_data["_message"] = ""
         if "_widget" in extra_data:
@@ -765,14 +642,13 @@ class DbWorkflowObject(db.Model):
 
     def get_current_task_info(self):
         """Return dictionary of current task function info for this object."""
-        task_pointer = self.get_current_task()
         name = self.get_workflow_name()
         if not name:
-            return ""
+            return
 
-        current_task = workflows[name]
-        for step in task_pointer:
-            current_task = current_task.workflow[step]
+        current_task = workflows[name].workflow
+        for step in self.callback_pos:
+            current_task = current_task[step]
             if callable(current_task):
                 return get_func_info(current_task)
 

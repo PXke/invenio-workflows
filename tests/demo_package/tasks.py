@@ -415,7 +415,6 @@ def task_b(obj, eng):
     """Function task_b docstring."""
     if obj.data < 20:
         eng.log.info("data < 20")
-        obj.add_task_result("task_b", {'a': 12, 'b': 13, 'c': 14})
 
 
 def generate_error(obj, eng):

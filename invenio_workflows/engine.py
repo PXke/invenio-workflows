@@ -278,7 +278,8 @@ class InvProcessingFactory(DbProcessingFactory):
     @staticmethod
     def before_object(eng, objects, obj):
         """Action to take before the processing of an object begins."""
-        obj.reset_error_message()
+        if "_error_msg" in obj.extra_data:
+            del obj.extra_data["_error_msg"]
         super(InvProcessingFactory, InvProcessingFactory).before_object(
             eng, objects, obj
         )
@@ -293,7 +294,7 @@ class InvTransitionAction(TransitionActions):
         eng.log.error(msg)
         if obj:
             # Sets an error message as a tuple (title, details)
-            obj.set_error_message(exception_repr)
+            obj.extra_data['_error_msg'] = exception_repr
             obj.save(status=obj.known_statuses.ERROR, callback_pos=eng.state.callback_pos,
                      id_workflow=eng.uuid)
         eng.save(WorkflowStatus.ERROR)

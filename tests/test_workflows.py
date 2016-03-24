@@ -592,20 +592,3 @@ class TestWorkflowTasks(WorkflowTasksTestCase):
         self.assertEqual("lt9", test_object.extra_data["test"])
         start_by_wid(workflow.uuid)
         test_object.delete(test_object.id)
-
-    def test_workflow_task_results(self):
-        """Test the setting and getting of task results."""
-        test_object = DbWorkflowObject()
-        test_object.save()  # Saving is needed to instantiate default values
-
-        test_object.add_task_result("test", {"data": "testing"})
-        results = test_object.get_tasks_results()
-        self.assertEqual(len(results.get("test")), 1)
-
-        result_item = results.get("test")[0]
-        self.assertEqual({"data": "testing"},
-                         result_item.get("result"))
-        self.assertEqual("workflows/results/default.html",
-                         result_item.get("template"))
-        self.assertEqual("test",
-                         result_item.get("name"))
