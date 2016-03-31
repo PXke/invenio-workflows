@@ -685,6 +685,12 @@ class DbWorkflowObject(db.Model):
         workflow_object_saved.send(self)
 
     @classmethod
+    def delete(cls, id=None):
+        """Delete a workflow."""
+        id = id or cls.id
+        db.session.delete(cls.get(DbWorkflowObject.id == id).first())
+
+    @classmethod
     def create_object(cls, **kwargs):
         """Create a new Workflow Object with given content."""
         obj = DbWorkflowObject(**kwargs)
@@ -692,5 +698,20 @@ class DbWorkflowObject(db.Model):
             db.session.add(obj)
         return obj
 
+    @classmethod
+    def get(cls, *criteria, **filters):
+        """Wrapper to get a specified object.
+
+        A wrapper for the filter and filter_by functions of sqlalchemy.
+        Define a dict with which columns should be filtered by which values.
+
+        .. code-block:: python
+
+            DbWorkflowObject.get(id=id)
+            DbWorkflowObject.get(DbWorkflowObject.id != id)
+
+        See also SQLAlchemy BaseQuery's filter and filter_by documentation.
+        """
+        return cls.query.filter(*criteria).filter_by(**filters)
 
 __all__ = ('Workflow', 'DbWorkflowObject')
